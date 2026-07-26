@@ -153,6 +153,7 @@ void p101_module_map_write_report(const struct p101_env *env, struct p101_error 
 {
     P101_TRACE(env);
     p101_fputs(env, err, "# p101 module map\n\n", stream);
+    p101_fputs(env, err, "> Parser note: this report uses a conservative project-shape scanner for modules, declarations, includes, and likely design issues. Use `p101-wrapper-audit` for Clang-backed call-boundary checks.\n\n", stream);
     p101_fprintf(env, err, stream, "Files scanned: `%zu`\n\n", map->file_count);
     p101_fprintf(env, err, stream, "Modules found: `%zu`\n\n", map->module_count);
     p101_fprintf(env, err, stream, "Functions found: `%zu`\n\n", map->function_count);
