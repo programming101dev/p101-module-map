@@ -17,9 +17,8 @@ writes a Markdown report showing:
 
 This is a teaching tool, not a proof engine. The C report generator no longer
 tries to parse C itself; `p101-wrapper-audit` owns the Clang AST pass and emits
-the shared fact stream documented in
-`../p101-wrapper-audit/docs/module-facts.md`. That gives the module map a real
-parser while keeping the report logic readable.
+the shared fact stream parsed by `lib_c_facts`. That gives the module map a
+real parser while keeping the report logic readable.
 
 Unreadable files, dangling symlinks, and missing optional layer files are skipped
 or treated as non-fatal. The tool should report the project shape it can see
