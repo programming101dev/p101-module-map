@@ -231,9 +231,10 @@ void p101_module_map_add_call(const struct p101_env *env, struct p101_error *err
     struct call_record *call;
 
     P101_TRACE(env);
+    (void)err;
     if(map->call_count >= MAX_CALLS)
     {
-        P101_ERROR_RAISE_USER(err, "Too many call-like tokens for p101-module-map.", ERR_USAGE);
+        map->calls_dropped++;
         goto done;
     }
 

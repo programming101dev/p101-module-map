@@ -157,7 +157,13 @@ void p101_module_map_scan_path(const struct p101_env *env, struct p101_error *er
     struct stat info;
 
     P101_TRACE(env);
-    if(p101_stat(env, err, path, &info) != 0)
+    if(p101_lstat(env, err, path, &info) != 0)
+    {
+        p101_error_reset(err);
+        goto done;
+    }
+
+    if(S_ISLNK(info.st_mode))
     {
         goto done;
     }
@@ -184,6 +190,7 @@ static void p101_module_map_scan_directory(const struct p101_env *env, struct p1
     dir = p101_opendir(env, err, path);
     if(dir == NULL)
     {
+        p101_error_reset(err);
         goto done;
     }
 
@@ -203,6 +210,7 @@ static void p101_module_map_scan_directory(const struct p101_env *env, struct p1
 
         if(p101_error_has_error(err))
         {
+            p101_error_reset(err);
             break;
         }
 
@@ -251,6 +259,7 @@ void p101_module_map_parse_source_file(const struct p101_env *env, struct p101_e
 
     if(stream == NULL)
     {
+        p101_error_reset(err);
         goto done;
     }
 

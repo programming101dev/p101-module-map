@@ -2,8 +2,9 @@
 
 `p101-module-map` helps students see the shape of a C project.
 
-It scans `.c` and `.h` files, groups them into modules by basename, and writes a
-Markdown report showing:
+It asks `p101-wrapper-audit` to parse `.c` and `.h` files with Clang, consumes
+the resulting plain TSV fact stream, groups files into modules by basename, and
+writes a Markdown report showing:
 
 - source/header pairs;
 - public, private, and header-declared functions;
@@ -14,14 +15,21 @@ Markdown report showing:
 - direct include cycles;
 - likely utility dumping grounds such as `util.c`.
 
-This is a teaching tool, not a proof engine. Its v1 parser is intentionally
-conservative and readable: it recognizes common C function signatures and
-include lines, then turns those into a map students can discuss and improve.
+This is a teaching tool, not a proof engine. The C report generator no longer
+tries to parse C itself; `p101-wrapper-audit` owns the Clang AST pass and emits
+the shared fact stream documented in
+`../p101-wrapper-audit/docs/module-facts.md`. That gives the module map a real
+parser while keeping the report logic readable.
+
+Unreadable files, dangling symlinks, and missing optional layer files are skipped
+or treated as non-fatal. The tool should report the project shape it can see
+rather than abort because a build artifact or external include path wandered into
+the scan.
 
 ## Usage
 
 ```sh
-p101-module-map [-h] [-v] [-o <report.md>] [-l <layers.txt>] [-m <max-functions>] [-p <max-public>] [path...]
+p101-module-map [-h] [-v] [-o <report.md>] [-l <layers.txt>] [-m <max-functions>] [-p <max-public>] [-F <p101-wrapper-audit>] [path...]
 ```
 
 Examples:
@@ -31,9 +39,18 @@ p101-module-map src include
 p101-module-map -o module-map.md src include
 p101-module-map -l layers.txt src include
 p101-module-map -m 8 -p 4 programs/simple-port-forwarder/src
+p101-module-map -F ../p101-wrapper-audit/p101-wrapper-audit src include
 ```
 
 With no paths, `p101-module-map` scans the current directory.
+
+The Clang fact tool is resolved in this order:
+
+- `-F <tool>`;
+- `P101_MODULE_MAP_FACT_TOOL`;
+- `P101_WRAPPER_AUDIT`;
+- the sibling workspace path `../p101-wrapper-audit/p101-wrapper-audit`;
+- `p101-wrapper-audit` from `PATH`.
 
 Layer files contain allowed local include edges, one per line:
 

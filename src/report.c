@@ -102,6 +102,8 @@ static bool p101_module_map_layer_allows_include(const struct p101_env *env, str
 
     if(stream == NULL)
     {
+        p101_error_reset(err);
+        ret_val = true;
         goto done;
     }
 
@@ -153,10 +155,14 @@ void p101_module_map_write_report(const struct p101_env *env, struct p101_error 
 {
     P101_TRACE(env);
     p101_fputs(env, err, "# p101 module map\n\n", stream);
-    p101_fputs(env, err, "> Parser note: this report uses a conservative project-shape scanner for modules, declarations, includes, and likely design issues. Use `p101-wrapper-audit` for Clang-backed call-boundary checks.\n\n", stream);
+    p101_fputs(env, err, "> Parser note: this report consumes Clang AST facts from `p101-wrapper-audit`; the module design checks are still teaching heuristics, not proof obligations.\n\n", stream);
     p101_fprintf(env, err, stream, "Files scanned: `%zu`\n\n", map->file_count);
     p101_fprintf(env, err, stream, "Modules found: `%zu`\n\n", map->module_count);
     p101_fprintf(env, err, stream, "Functions found: `%zu`\n\n", map->function_count);
+    if(map->calls_dropped > 0U)
+    {
+        p101_fprintf(env, err, stream, "Call-like tokens dropped after cap: `%zu`\n\n", map->calls_dropped);
+    }
     p101_module_map_write_modules(env, err, stream, map);
     p101_module_map_write_include_graph(env, err, stream, map);
     p101_module_map_write_findings(env, err, stream, args, map);

@@ -98,6 +98,7 @@ struct project_map
     size_t                 macro_count;
     size_t                 type_count;
     size_t                 call_count;
+    size_t                 calls_dropped;
 };
 
 #endif    // P101_MODULE_MAP_MODEL_H

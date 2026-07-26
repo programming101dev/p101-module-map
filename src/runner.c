@@ -1,8 +1,8 @@
 #include "runner.h"
 #include "constants.h"
+#include "fact_loader.h"
 #include "model.h"
 #include "report.h"
-#include "scanner.h"
 #include <p101_c/p101_stdio.h>
 #include <p101_c/p101_string.h>
 #include <stdio.h>
@@ -19,28 +19,7 @@ int p101_module_map_run(const struct p101_env *env, struct p101_error *err, cons
     stream  = stdout;
     ret_val = EXIT_FAILURE;
 
-    if(args->path_count == 0U)
-    {
-        p101_module_map_scan_path(env, err, &map, ".");
-    }
-    else
-    {
-        for(size_t i = 0; i < args->path_count && p101_error_has_no_error(err); i++)
-        {
-            p101_module_map_scan_path(env, err, &map, args->paths[i]);
-        }
-    }
-
-    if(p101_error_has_error(err))
-    {
-        goto done;
-    }
-
-    for(size_t i = 0; i < map.file_count && p101_error_has_no_error(err); i++)
-    {
-        p101_module_map_parse_source_file(env, err, &map, &map.files[i]);
-    }
-
+    p101_module_map_load_clang_facts(env, err, &map, args);
     if(p101_error_has_error(err))
     {
         goto done;
