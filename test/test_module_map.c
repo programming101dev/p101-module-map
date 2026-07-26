@@ -1,4 +1,5 @@
 #include "constants.h"
+#include "cli.h"
 #include "model.h"
 #include "model_mutation.h"
 #include "model_query.h"
@@ -10,6 +11,7 @@
 #include <p101_error/error.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <p101_posix/p101_unistd.h>
 
 static struct p101_error *error;
 static struct p101_env   *env;
@@ -24,6 +26,34 @@ void tearDown(void)
 {
     p101_env_destroy(env);
     p101_error_destroy(error);
+}
+
+static void reset_getopt(void)
+{
+#ifdef __GLIBC__
+    optind = 0;
+#else
+    extern int optreset;
+    optreset = 1;
+    optind   = 1;
+#endif
+}
+
+static void test_parse_accepts_layer_config(void)
+{
+    char            *argv[] = {"p101-module-map", "-l", "layers.txt", "src", NULL};
+    struct arguments args;
+
+    reset_getopt();
+    p101_memset(env, &args, 0, sizeof(args));
+    p101_module_map_arguments_init(env, &args);
+
+    p101_module_map_parse_arguments(env, error, 4, argv, &args);
+    p101_module_map_check_arguments(env, error, &args);
+
+    TEST_ASSERT_FALSE(p101_error_has_error(error));
+    TEST_ASSERT_EQUAL_STRING("layers.txt", args.layer_config_path);
+    TEST_ASSERT_EQUAL_STRING("src", args.paths[0]);
 }
 
 static void test_basename_no_suffix(void)
@@ -132,6 +162,7 @@ static void test_public_function_requires_used_interface(void)
 int main(void)
 {
     UNITY_BEGIN();
+    RUN_TEST(test_parse_accepts_layer_config);
     RUN_TEST(test_basename_no_suffix);
     RUN_TEST(test_parse_include_line);
     RUN_TEST(test_parse_public_macro_and_type_lines);

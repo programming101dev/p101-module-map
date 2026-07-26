@@ -21,6 +21,7 @@ Run `./change-compiler.sh -c <compiler>` once before building.
 | `./clean.sh` | Remove `build-` / `coverage-` / `profile-` output (`-n` previews) |
 | `./build-clang/p101-module-map src include` | Write a Markdown module map to stdout |
 | `./build-clang/p101-module-map -o module-map.md src include` | Write a Markdown module map to a file |
+| `./build-clang/p101-module-map -l layers.txt src include` | Also check declared module dependency edges |
 
 Less common: `./build-all.sh` (build with every compiler), `./check-compilers.sh`
 (detect installed compilers), `./check-env.sh` (verify required tools).

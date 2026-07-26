@@ -24,7 +24,7 @@ void p101_module_map_parse_arguments(const struct p101_env *env, struct p101_err
     P101_TRACE(env);
     opterr = 0;
 
-    while((opt = p101_getopt(env, argc, argv, ":hvo:m:p:")) != -1 && p101_error_has_no_error(err))
+    while((opt = p101_getopt(env, argc, argv, ":hvo:l:m:p:")) != -1 && p101_error_has_no_error(err))
     {
         switch(opt)
         {
@@ -40,6 +40,11 @@ void p101_module_map_parse_arguments(const struct p101_env *env, struct p101_err
             case 'o':
             {
                 args->output_path = optarg;
+                break;
+            }
+            case 'l':
+            {
+                args->layer_config_path = optarg;
                 break;
             }
             case 'm':
@@ -101,6 +106,12 @@ void p101_module_map_check_arguments(const struct p101_env *env, struct p101_err
         goto done;
     }
 
+    if(args->layer_config_path != NULL && args->layer_config_path[0] == '\0')
+    {
+        P101_ERROR_RAISE_USER(err, "The layer config path must not be empty.", ERR_USAGE);
+        goto done;
+    }
+
     if(args->max_functions == 0U)
     {
         P101_ERROR_RAISE_USER(err, "The max-functions threshold must be greater than zero.", ERR_USAGE);
@@ -124,12 +135,13 @@ void p101_module_map_usage(const struct p101_env *env, struct p101_error *err, c
         p101_fprintf(env, err, stderr, "%s\n\n", message);
     }
 
-    p101_fprintf(env, err, stderr, "Usage: %s [-h] [-v] [-o <report.md>] [-m <max-functions>] [-p <max-public>] [path...]\n", program_name);
+    p101_fprintf(env, err, stderr, "Usage: %s [-h] [-v] [-o <report.md>] [-l <layers.txt>] [-m <max-functions>] [-p <max-public>] [path...]\n", program_name);
     p101_fputs(env, err, "\nMap source/header modules and point out beginner-friendly module design issues.\n", stderr);
     p101_fputs(env, err, "\nOptions:\n", stderr);
     p101_fputs(env, err, "  -h                 Show this help\n", stderr);
     p101_fputs(env, err, "  -v                 Enable p101 tracing inside p101-module-map\n", stderr);
     p101_fputs(env, err, "  -o <report.md>     Write Markdown report to a file instead of stdout\n", stderr);
+    p101_fputs(env, err, "  -l <layers.txt>    Optional allowed include edges, one `module -> module` per line\n", stderr);
     p101_fputs(env, err, "  -m <count>         Warn when a module has more than this many functions; default 12\n", stderr);
     p101_fputs(env, err, "  -p <count>         Warn when a module exposes more than this many non-static functions; default 8\n", stderr);
     p101_fputs(env, err, "\nExample:\n", stderr);

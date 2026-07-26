@@ -13,6 +13,7 @@ enum
 struct arguments
 {
     const char *output_path;
+    const char *layer_config_path;
     const char *paths[P101_MODULE_MAP_MAX_PATHS];
     size_t      path_count;
     size_t      max_functions;

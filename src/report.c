@@ -1,6 +1,7 @@
 #include "report.h"
 #include "model.h"
 #include "model_query.h"
+#include "strings.h"
 #include <p101_c/p101_stdio.h>
 #include <p101_c/p101_string.h>
 #include <stdio.h>
@@ -43,6 +44,7 @@ static const struct raw_call_rule RAW_CALL_RULES[] = {
 };
 
 static bool        p101_module_map_is_platform_specific_include(const struct p101_env *env, const char *target);
+static bool        p101_module_map_layer_allows_include(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const char *from_module, const char *target);
 static const char *p101_module_map_raw_call_library(const struct p101_env *env, const char *name);
 
 static bool p101_module_map_is_platform_specific_include(const struct p101_env *env, const char *target)
@@ -74,6 +76,77 @@ static const char *p101_module_map_raw_call_library(const struct p101_env *env, 
     }
 
     return library;
+}
+
+static bool p101_module_map_layer_allows_include(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const char *from_module, const char *target)
+{
+    FILE *stream;
+    bool  ret_val;
+    char  line[MAX_NAME * 3U];
+
+    ret_val = true;
+    stream  = NULL;
+
+    if(p101_strcmp(env, from_module, target) == 0)
+    {
+        goto done;
+    }
+
+    if(args->layer_config_path == NULL)
+    {
+        goto done;
+    }
+
+    ret_val = false;
+    stream  = p101_fopen(env, err, args->layer_config_path, "r");
+
+    if(stream == NULL)
+    {
+        goto done;
+    }
+
+    while(p101_error_has_no_error(err) && p101_fgets(env, err, line, sizeof(line), stream) != NULL)
+    {
+        char       *left;
+        char       *right;
+        char       *arrow;
+        const char *found;
+
+        p101_module_map_trim_right(env, line);
+        left = p101_module_map_trim_left(env, line);
+
+        if(left[0] == '\0' || left[0] == '#')
+        {
+            continue;
+        }
+
+        found = p101_strstr(env, left, "->");
+
+        if(found == NULL)
+        {
+            continue;
+        }
+
+        arrow    = &left[found - left];
+        arrow[0] = '\0';
+        p101_module_map_trim_right(env, left);
+        right = p101_module_map_trim_left(env, arrow + 2);
+        p101_module_map_trim_right(env, right);
+
+        if(p101_strcmp(env, left, from_module) == 0 && p101_strcmp(env, right, target) == 0)
+        {
+            ret_val = true;
+            break;
+        }
+    }
+
+done:
+    if(stream != NULL)
+    {
+        p101_fclose(env, err, stream);
+    }
+
+    return ret_val;
 }
 
 void p101_module_map_write_report(const struct p101_env *env, struct p101_error *err, FILE *stream, const struct arguments *args, const struct project_map *map)
@@ -256,6 +329,20 @@ void p101_module_map_write_findings(const struct p101_env *env, struct p101_erro
         if(include->is_local && !p101_module_map_include_target_exists(env, map, include->target))
         {
             p101_fprintf(env, err, stream, "- `%s` includes local header `%s`, but no scanned module named `%s` was found. Check for a stale include or add the missing module to the scan path.\n", include->path, include->target, include->target);
+            wrote = true;
+        }
+
+        if(include->is_local && !p101_module_map_layer_allows_include(env, err, args, include->from_module, include->target))
+        {
+            p101_fprintf(env,
+                         err,
+                         stream,
+                         "- `%s` includes `%s`, but that edge is not allowed by `%s`. Add `%s -> %s` only if this dependency is intentional.\n",
+                         include->from_module,
+                         include->target,
+                         args->layer_config_path,
+                         include->from_module,
+                         include->target);
             wrote = true;
         }
 
