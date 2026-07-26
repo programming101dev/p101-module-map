@@ -1,0 +1,74 @@
+#include "runner.h"
+#include "constants.h"
+#include "model.h"
+#include "report.h"
+#include "scanner.h"
+#include <p101_c/p101_stdio.h>
+#include <p101_c/p101_string.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+int p101_module_map_run(const struct p101_env *env, struct p101_error *err, const struct arguments *args)
+{
+    static struct project_map map;
+    FILE                     *stream;
+    int                       ret_val;
+
+    P101_TRACE(env);
+    p101_memset(env, &map, 0, sizeof(map));
+    stream  = stdout;
+    ret_val = EXIT_FAILURE;
+
+    if(args->path_count == 0U)
+    {
+        p101_module_map_scan_path(env, err, &map, ".");
+    }
+    else
+    {
+        for(size_t i = 0; i < args->path_count && p101_error_has_no_error(err); i++)
+        {
+            p101_module_map_scan_path(env, err, &map, args->paths[i]);
+        }
+    }
+
+    if(p101_error_has_error(err))
+    {
+        goto done;
+    }
+
+    for(size_t i = 0; i < map.file_count && p101_error_has_no_error(err); i++)
+    {
+        p101_module_map_parse_source_file(env, err, &map, &map.files[i]);
+    }
+
+    if(p101_error_has_error(err))
+    {
+        goto done;
+    }
+
+    if(args->output_path != NULL)
+    {
+        stream = p101_fopen(env, err, args->output_path, "w");
+        if(stream == NULL)
+        {
+            goto done;
+        }
+    }
+
+    p101_module_map_write_report(env, err, stream, args, &map);
+    if(p101_error_has_no_error(err))
+    {
+        ret_val = EXIT_SUCCESS;
+    }
+    else
+    {
+        ret_val = EXIT_FAILURE;
+    }
+
+done:
+    if(stream != NULL && stream != stdout)
+    {
+        p101_fclose(env, err, stream);
+    }
+    return ret_val;
+}

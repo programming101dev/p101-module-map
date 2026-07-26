@@ -50,9 +50,7 @@ function(p101_add_test name)
     add_test(NAME ${name} COMMAND ${name})
 endfunction()
 
-# Tests THIS project's own code by including src/main.c with its program main()
-# renamed aside, so the static helpers remain directly testable.
-p101_add_test(test_module_map test_module_map.c)
+p101_add_test(test_module_map test_module_map.c ../src/model_mutation.c ../src/model_query.c ../src/parse.c ../src/strings.c)
 
 # Example of testing a p101 wrapper this project links (no project code needed).
 p101_add_test(test_p101_string test_p101_string.c)
