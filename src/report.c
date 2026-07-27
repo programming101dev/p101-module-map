@@ -82,7 +82,7 @@ static bool p101_module_map_layer_allows_include(const struct p101_env *env, str
 {
     FILE *stream;
     bool  ret_val;
-    char  line[MAX_NAME * 3U];
+    char  line[MAX_LINE];
 
     ret_val = true;
     stream  = NULL;
@@ -102,8 +102,6 @@ static bool p101_module_map_layer_allows_include(const struct p101_env *env, str
 
     if(stream == NULL)
     {
-        p101_error_reset(err);
-        ret_val = true;
         goto done;
     }
 
@@ -151,8 +149,10 @@ done:
     return ret_val;
 }
 
-void p101_module_map_write_report(const struct p101_env *env, struct p101_error *err, FILE *stream, const struct arguments *args, const struct project_map *map)
+bool p101_module_map_write_report(const struct p101_env *env, struct p101_error *err, FILE *stream, const struct arguments *args, const struct project_map *map)
 {
+    bool has_findings;
+
     P101_TRACE(env);
     p101_fputs(env, err, "# p101 module map\n\n", stream);
     p101_fputs(env, err, "> Parser note: this report consumes Clang AST facts from `p101-wrapper-audit`; the module design checks are still teaching heuristics, not proof obligations.\n\n", stream);
@@ -165,7 +165,9 @@ void p101_module_map_write_report(const struct p101_env *env, struct p101_error 
     }
     p101_module_map_write_modules(env, err, stream, map);
     p101_module_map_write_include_graph(env, err, stream, map);
-    p101_module_map_write_findings(env, err, stream, args, map);
+    has_findings = p101_module_map_write_findings(env, err, stream, args, map);
+
+    return has_findings;
 }
 
 void p101_module_map_write_modules(const struct p101_env *env, struct p101_error *err, FILE *stream, const struct project_map *map)
@@ -224,7 +226,7 @@ void p101_module_map_write_include_graph(const struct p101_env *env, struct p101
     p101_fputs(env, err, "\n", stream);
 }
 
-void p101_module_map_write_findings(const struct p101_env *env, struct p101_error *err, FILE *stream, const struct arguments *args, const struct project_map *map)
+bool p101_module_map_write_findings(const struct p101_env *env, struct p101_error *err, FILE *stream, const struct arguments *args, const struct project_map *map)
 {
     bool wrote;
 
@@ -396,6 +398,8 @@ void p101_module_map_write_findings(const struct p101_env *env, struct p101_erro
     {
         p101_fputs(env, err, "No obvious module-structure issues found by the v1 heuristics.\n", stream);
     }
+
+    return wrote;
 }
 
 void p101_module_map_write_functions_for_module(const struct p101_env *env, struct p101_error *err, FILE *stream, const struct project_map *map, const char *module_name)

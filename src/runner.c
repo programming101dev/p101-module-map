@@ -13,6 +13,7 @@ int p101_module_map_run(const struct p101_env *env, struct p101_error *err, cons
     static struct project_map map;
     FILE                     *stream;
     int                       ret_val;
+    bool                      has_findings;
 
     P101_TRACE(env);
     p101_memset(env, &map, 0, sizeof(map));
@@ -34,10 +35,17 @@ int p101_module_map_run(const struct p101_env *env, struct p101_error *err, cons
         }
     }
 
-    p101_module_map_write_report(env, err, stream, args, &map);
+    has_findings = p101_module_map_write_report(env, err, stream, args, &map);
     if(p101_error_has_no_error(err))
     {
-        ret_val = EXIT_SUCCESS;
+        if(has_findings)
+        {
+            ret_val = EXIT_FAILURE;
+        }
+        else
+        {
+            ret_val = EXIT_SUCCESS;
+        }
     }
     else
     {

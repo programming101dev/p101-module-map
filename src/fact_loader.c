@@ -8,12 +8,14 @@
 #include <p101_c/p101_string.h>
 #include <p101_c_facts/facts.h>
 #include <p101_posix/p101_stdio.h>
+#include <stdbool.h>
 #include <stdio.h>
 
 static struct source_file *p101_module_map_find_fact_file(const struct p101_env *env, struct project_map *map, const char *path);
 static struct source_file *p101_module_map_file_for_fact(const struct p101_env *env, struct p101_error *err, struct project_map *map, const struct p101_c_fact *fact);
 static void                p101_module_map_note_call_semantics(const struct p101_env *env, struct p101_error *err, struct project_map *map, const struct source_file *file, const char *name);
 static void                p101_module_map_apply_fact(const struct p101_env *env, struct p101_error *err, struct project_map *map, const struct p101_c_fact *fact);
+static bool                p101_module_map_fact_line_is_complete(const struct p101_env *env, struct p101_error *err, FILE *stream, char *line);
 
 static struct source_file *p101_module_map_find_fact_file(const struct p101_env *env, struct project_map *map, const char *path)
 {
@@ -147,6 +149,32 @@ done:
     return;
 }
 
+static bool p101_module_map_fact_line_is_complete(const struct p101_env *env, struct p101_error *err, FILE *stream, char *line)
+{
+    bool   complete;
+    size_t length;
+
+    P101_TRACE(env);
+    complete = true;
+    length   = p101_strlen(env, line);
+
+    if(length == MAX_LINE - 1U && p101_strchr(env, line, '\n') == NULL)
+    {
+        char discard[MAX_LINE];
+
+        complete = false;
+        while(p101_error_has_no_error(err) && p101_fgets(env, err, discard, sizeof(discard), stream) != NULL)
+        {
+            if(p101_strchr(env, discard, '\n') != NULL)
+            {
+                break;
+            }
+        }
+    }
+
+    return complete;
+}
+
 void p101_module_map_load_clang_facts(const struct p101_env *env, struct p101_error *err, struct project_map *map, const struct arguments *args)
 {
     FILE *stream;
@@ -179,6 +207,11 @@ void p101_module_map_load_clang_facts(const struct p101_env *env, struct p101_er
     {
         struct p101_c_fact      fact;
         enum p101_c_fact_status status;
+
+        if(!p101_module_map_fact_line_is_complete(env, err, stream, line))
+        {
+            continue;
+        }
 
         status = p101_c_fact_parse_line(env, err, line, &fact);
         if(status == P101_C_FACT_OTHER)

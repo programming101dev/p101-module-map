@@ -1,17 +1,16 @@
-#include "constants.h"
 #include "cli.h"
+#include "constants.h"
 #include "model.h"
 #include "model_mutation.h"
 #include "model_query.h"
-#include "parse.h"
 #include "strings.h"
 #include "unity.h"
 #include <p101_c/p101_string.h>
 #include <p101_env/env.h>
 #include <p101_error/error.h>
+#include <p101_posix/p101_unistd.h>
 #include <stdbool.h>
 #include <stdlib.h>
-#include <p101_posix/p101_unistd.h>
 
 static struct p101_error *error;
 static struct p101_env   *env;
@@ -67,59 +66,6 @@ static void test_basename_no_suffix(void)
     TEST_ASSERT_EQUAL_STRING("bar", name);
 }
 
-static void test_parse_include_line(void)
-{
-    char target[MAX_NAME];
-    bool is_local;
-
-    TEST_ASSERT_TRUE(p101_module_map_parse_include_line(env, target, sizeof(target), &is_local, "#include \"server.h\""));
-    TEST_ASSERT_TRUE(is_local);
-    TEST_ASSERT_EQUAL_STRING("server.h", target);
-
-    TEST_ASSERT_TRUE(p101_module_map_parse_include_line(env, target, sizeof(target), &is_local, "#include <stdio.h>"));
-    TEST_ASSERT_FALSE(is_local);
-    TEST_ASSERT_EQUAL_STRING("stdio.h", target);
-}
-
-static void test_parse_public_macro_and_type_lines(void)
-{
-    char name[MAX_NAME];
-
-    TEST_ASSERT_TRUE(p101_module_map_parse_macro_line(env, name, sizeof(name), "#define RESOURCE_LIMIT 32"));
-    TEST_ASSERT_EQUAL_STRING("RESOURCE_LIMIT", name);
-
-    TEST_ASSERT_TRUE(p101_module_map_parse_macro_line(env, name, sizeof(name), "#define RESOURCE_LIMIT(value) ((value) + 1)"));
-    TEST_ASSERT_EQUAL_STRING("RESOURCE_LIMIT", name);
-
-    TEST_ASSERT_FALSE(p101_module_map_parse_macro_line(env, name, sizeof(name), "#define P101_MODULE_MAP_MODEL_H"));
-
-    TEST_ASSERT_TRUE(p101_module_map_parse_type_line(env, name, sizeof(name), "typedef struct config config;"));
-    TEST_ASSERT_EQUAL_STRING("config", name);
-
-    TEST_ASSERT_TRUE(p101_module_map_parse_type_line(env, name, sizeof(name), "struct server_state"));
-    TEST_ASSERT_EQUAL_STRING("server_state", name);
-}
-
-static void test_parse_function_signature(void)
-{
-    char name[MAX_NAME];
-    bool is_static;
-
-    TEST_ASSERT_TRUE(p101_module_map_parse_function_signature(env, name, sizeof(name), &is_static, "static void helper(const char *name) {"));
-    TEST_ASSERT_TRUE(is_static);
-    TEST_ASSERT_EQUAL_STRING("helper", name);
-
-    TEST_ASSERT_TRUE(p101_module_map_parse_function_signature(env, name, sizeof(name), &is_static, "int server_run(struct config *config)"));
-    TEST_ASSERT_FALSE(is_static);
-    TEST_ASSERT_EQUAL_STRING("server_run", name);
-
-    TEST_ASSERT_TRUE(p101_module_map_parse_function_signature(env, name, sizeof(name), &is_static, "void add_function(bool is_static)"));
-    TEST_ASSERT_FALSE(is_static);
-    TEST_ASSERT_EQUAL_STRING("add_function", name);
-
-    TEST_ASSERT_FALSE(p101_module_map_parse_function_signature(env, name, sizeof(name), &is_static, "if(foo) {"));
-}
-
 static void test_public_function_requires_used_interface(void)
 {
     struct project_map      map;
@@ -164,9 +110,6 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_parse_accepts_layer_config);
     RUN_TEST(test_basename_no_suffix);
-    RUN_TEST(test_parse_include_line);
-    RUN_TEST(test_parse_public_macro_and_type_lines);
-    RUN_TEST(test_parse_function_signature);
     RUN_TEST(test_public_function_requires_used_interface);
     return UNITY_END();
 }
