@@ -68,7 +68,7 @@ static void test_basename_no_suffix(void)
 
 static void test_public_function_requires_used_interface(void)
 {
-    struct project_map      map;
+    static struct project_map map;
     struct source_file      source;
     struct source_file      header;
     struct source_file      caller;
