@@ -22,6 +22,7 @@ Run `./change-compiler.sh -c <compiler>` once before building.
 | `./build-clang/p101-module-map src include` | Write a Markdown module map to stdout |
 | `./build-clang/p101-module-map -o module-map.md src include` | Write a Markdown module map to a file |
 | `./build-clang/p101-module-map -l layers.txt src include` | Also check declared module dependency edges |
+| `./build-clang/p101-module-map -C build-clang/compile_commands.json src include` | Select the Clang compilation database explicitly |
 
 Less common: `./build-all.sh` (build with every compiler), `./check-compilers.sh`
 (detect installed compilers), `./check-env.sh` (verify required tools).

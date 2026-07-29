@@ -29,7 +29,7 @@ void p101_module_map_parse_arguments(const struct p101_env *env, struct p101_err
         p101_module_map_usage(env, err, argv[0], EXIT_SUCCESS, NULL);
     }
 
-    while((opt = p101_getopt(env, argc, argv, ":hvo:l:m:p:F:")) != -1 && p101_error_has_no_error(err))
+    while((opt = p101_getopt(env, argc, argv, ":hvo:l:m:p:C:F:")) != -1 && p101_error_has_no_error(err))
     {
         switch(opt)
         {
@@ -65,6 +65,11 @@ void p101_module_map_parse_arguments(const struct p101_env *env, struct p101_err
             case 'F':
             {
                 args->fact_tool_path = optarg;
+                break;
+            }
+            case 'C':
+            {
+                args->compile_db_path = optarg;
                 break;
             }
             case ':':
@@ -122,6 +127,12 @@ void p101_module_map_check_arguments(const struct p101_env *env, struct p101_err
         goto done;
     }
 
+    if(args->compile_db_path != NULL && args->compile_db_path[0] == '\0')
+    {
+        P101_ERROR_RAISE_USER(err, "The compile database path must not be empty.", ERR_USAGE);
+        goto done;
+    }
+
     if(args->max_functions == 0U)
     {
         P101_ERROR_RAISE_USER(err, "The max-functions threshold must be greater than zero.", ERR_USAGE);
@@ -145,7 +156,7 @@ void p101_module_map_usage(const struct p101_env *env, struct p101_error *err, c
         p101_fprintf(env, err, stderr, "%s\n\n", message);
     }
 
-    p101_fprintf(env, err, stderr, "Usage: %s [-h] [-v] [-o <report.md>] [-l <layers.txt>] [-m <max-functions>] [-p <max-public>] [-F <p101-wrapper-audit>] [path...]\n", program_name);
+    p101_fprintf(env, err, stderr, "Usage: %s [-h] [-v] [-o <report.md>] [-l <layers.txt>] [-m <max-functions>] [-p <max-public>] [-C <compile_commands.json>] [-F <p101-wrapper-audit>] [path...]\n", program_name);
     p101_fputs(env, err, "\nMap source/header modules and point out beginner-friendly module design issues.\n", stderr);
     p101_fputs(env, err, "\nOptions:\n", stderr);
     p101_fputs(env, err, "  -h                 Show this help\n", stderr);
@@ -154,6 +165,7 @@ void p101_module_map_usage(const struct p101_env *env, struct p101_error *err, c
     p101_fputs(env, err, "  -l <layers.txt>    Optional allowed include edges, one `module -> module` per line\n", stderr);
     p101_fputs(env, err, "  -m <count>         Warn when a module has more than this many functions; default 12\n", stderr);
     p101_fputs(env, err, "  -p <count>         Warn when a module exposes more than this many non-static functions; default 8\n", stderr);
+    p101_fputs(env, err, "  -C <file>          Compile database passed to p101-wrapper-audit\n", stderr);
     p101_fputs(env, err, "  -F <tool>          p101-wrapper-audit executable used for Clang AST facts\n", stderr);
     p101_fputs(env, err, "\nExample:\n", stderr);
     p101_fprintf(env, err, stderr, "  %s -o module-map.md src include\n", program_name);

@@ -55,6 +55,23 @@ static void test_parse_accepts_layer_config(void)
     TEST_ASSERT_EQUAL_STRING("src", args.paths[0]);
 }
 
+static void test_parse_accepts_compile_database(void)
+{
+    char            *argv[] = {"p101-module-map", "-C", "build-clang/compile_commands.json", "src", NULL};
+    struct arguments args;
+
+    reset_getopt();
+    p101_memset(env, &args, 0, sizeof(args));
+    p101_module_map_arguments_init(env, &args);
+
+    p101_module_map_parse_arguments(env, error, 4, argv, &args);
+    p101_module_map_check_arguments(env, error, &args);
+
+    TEST_ASSERT_FALSE(p101_error_has_error(error));
+    TEST_ASSERT_EQUAL_STRING("build-clang/compile_commands.json", args.compile_db_path);
+    TEST_ASSERT_EQUAL_STRING("src", args.paths[0]);
+}
+
 static void test_basename_no_suffix(void)
 {
     char name[MAX_NAME];
@@ -69,10 +86,10 @@ static void test_basename_no_suffix(void)
 static void test_public_function_requires_used_interface(void)
 {
     static struct project_map map;
-    struct source_file      source;
-    struct source_file      header;
-    struct source_file      caller;
-    struct function_record *function;
+    struct source_file        source;
+    struct source_file        header;
+    struct source_file        caller;
+    struct function_record   *function;
 
     p101_memset(env, &map, 0, sizeof(map));
     p101_memset(env, &source, 0, sizeof(source));
@@ -109,6 +126,7 @@ int main(void)
 {
     UNITY_BEGIN();
     RUN_TEST(test_parse_accepts_layer_config);
+    RUN_TEST(test_parse_accepts_compile_database);
     RUN_TEST(test_basename_no_suffix);
     RUN_TEST(test_public_function_requires_used_interface);
     return UNITY_END();

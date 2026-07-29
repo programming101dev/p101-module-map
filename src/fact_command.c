@@ -5,6 +5,7 @@
 #include <p101_c/p101_stdio.h>
 #include <p101_c/p101_stdlib.h>
 #include <p101_c/p101_string.h>
+#include <p101_c_facts/project.h>
 #include <p101_posix/p101_unistd.h>
 #include <stdbool.h>
 #include <unistd.h>
@@ -13,6 +14,7 @@ static void        p101_module_map_append_checked(const struct p101_env *env, st
 static void        p101_module_map_append_char_checked(const struct p101_env *env, struct p101_error *err, char *command, size_t command_size, char ch);
 static void        p101_module_map_append_shell_quoted(const struct p101_env *env, struct p101_error *err, char *command, size_t command_size, const char *text);
 static void        p101_module_map_append_cflag(const struct p101_env *env, struct p101_error *err, char *command, size_t command_size, const char *flag);
+static void        p101_module_map_append_compile_database(const struct p101_env *env, struct p101_error *err, char *command, size_t command_size, const char *path);
 static void        p101_module_map_append_include_roots(const struct p101_env *env, struct p101_error *err, char *command, size_t command_size, const char *path);
 static const char *p101_module_map_choose_fact_tool(const struct p101_env *env, struct p101_error *err, const struct arguments *args);
 static bool        p101_module_map_executable_exists(const struct p101_env *env, struct p101_error *err, const char *path);
@@ -69,6 +71,13 @@ static void p101_module_map_append_cflag(const struct p101_env *env, struct p101
     P101_TRACE(env);
     p101_module_map_append_checked(env, err, command, command_size, " --cflag=");
     p101_module_map_append_shell_quoted(env, err, command, command_size, flag);
+}
+
+static void p101_module_map_append_compile_database(const struct p101_env *env, struct p101_error *err, char *command, size_t command_size, const char *path)
+{
+    P101_TRACE(env);
+    p101_module_map_append_checked(env, err, command, command_size, " --compile-db=");
+    p101_module_map_append_shell_quoted(env, err, command, command_size, path);
 }
 
 static void p101_module_map_append_include_roots(const struct p101_env *env, struct p101_error *err, char *command, size_t command_size, const char *path)
@@ -143,6 +152,8 @@ static bool p101_module_map_executable_exists(const struct p101_env *env, struct
 
 void p101_module_map_build_fact_command(const struct p101_env *env, struct p101_error *err, char *command, size_t command_size, const struct arguments *args)
 {
+    char        discovered_compile_db[PATH_LEN];
+    const char *compile_db;
     const char *tool;
 
     P101_TRACE(env);
@@ -150,6 +161,15 @@ void p101_module_map_build_fact_command(const struct p101_env *env, struct p101_
     tool       = p101_module_map_choose_fact_tool(env, err, args);
     p101_module_map_append_shell_quoted(env, err, command, command_size, tool);
     p101_module_map_append_checked(env, err, command, command_size, " --emit-module-facts");
+    compile_db = args->compile_db_path;
+    if(compile_db == NULL && p101_c_facts_find_clang_compile_database(env, err, ".", discovered_compile_db, sizeof(discovered_compile_db)))
+    {
+        compile_db = discovered_compile_db;
+    }
+    if(compile_db != NULL && p101_error_has_no_error(err))
+    {
+        p101_module_map_append_compile_database(env, err, command, command_size, compile_db);
+    }
     p101_module_map_append_include_roots(env, err, command, command_size, ".");
     p101_module_map_append_include_roots(env, err, command, command_size, "include");
 

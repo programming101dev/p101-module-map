@@ -28,7 +28,7 @@ the scan.
 ## Usage
 
 ```sh
-p101-module-map [-h] [-v] [-o <report.md>] [-l <layers.txt>] [-m <max-functions>] [-p <max-public>] [-F <p101-wrapper-audit>] [path...]
+p101-module-map [-h] [-v] [-o <report.md>] [-l <layers.txt>] [-m <max-functions>] [-p <max-public>] [-C <compile_commands.json>] [-F <p101-wrapper-audit>] [path...]
 ```
 
 Examples:
@@ -38,10 +38,16 @@ p101-module-map src include
 p101-module-map -o module-map.md src include
 p101-module-map -l layers.txt src include
 p101-module-map -m 8 -p 4 programs/simple-port-forwarder/src
+p101-module-map -C build-clang/compile_commands.json src include
 p101-module-map -F ../p101-wrapper-audit/p101-wrapper-audit src include
 ```
 
 With no paths, `p101-module-map` scans the current directory.
+
+The tool automatically uses the current project's Clang compilation database
+from `.last-build-dir` or `build-clang/compile_commands.json`. This preserves
+sibling-library include roots, feature-test macros, and other project flags.
+Use `-C` to select a different database explicitly.
 
 The Clang fact tool is resolved in this order:
 
