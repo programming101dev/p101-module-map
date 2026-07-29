@@ -4,7 +4,13 @@
 #include "strings.h"
 #include <p101_c/p101_stdio.h>
 #include <p101_c/p101_string.h>
+#include <stdarg.h>
 #include <stdio.h>
+
+enum
+{
+    ASCII_CONTROL_LIMIT = 32
+};
 
 struct raw_call_rule
 {
@@ -45,7 +51,11 @@ static const struct raw_call_rule RAW_CALL_RULES[] = {
 
 static bool        p101_module_map_is_platform_specific_include(const struct p101_env *env, const char *target);
 static bool        p101_module_map_layer_allows_include(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const char *from_module, const char *target);
+static bool        p101_module_map_module_has_source(const struct p101_env *env, const struct project_map *map, const char *module_name);
 static const char *p101_module_map_raw_call_library(const struct p101_env *env, const char *name);
+static void        p101_module_map_write_finding(const struct p101_env *env, struct p101_error *err, FILE *stream, const struct arguments *args, bool *first_json, size_t *finding_count, const char *id, const char *path, size_t line, const char *format, ...)
+    P101_ATTR_PRINTF(10, 11);
+static void p101_module_map_write_json_string(const struct p101_env *env, struct p101_error *err, FILE *stream, const char *text);
 
 static bool p101_module_map_is_platform_specific_include(const struct p101_env *env, const char *target)
 {
@@ -76,6 +86,18 @@ static const char *p101_module_map_raw_call_library(const struct p101_env *env, 
     }
 
     return library;
+}
+
+static bool p101_module_map_module_has_source(const struct p101_env *env, const struct project_map *map, const char *module_name)
+{
+    for(size_t i = 0U; i < map->module_count; i++)
+    {
+        if(p101_strcmp(env, map->modules[i].name, module_name) == 0)
+        {
+            return map->modules[i].source_count > 0U;
+        }
+    }
+    return false;
 }
 
 static bool p101_module_map_layer_allows_include(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const char *from_module, const char *target)
@@ -154,8 +176,16 @@ bool p101_module_map_write_report(const struct p101_env *env, struct p101_error 
     bool has_findings;
 
     P101_TRACE(env);
+    if(args->json)
+    {
+        return p101_module_map_write_findings(env, err, stream, args, map);
+    }
     p101_fputs(env, err, "# p101 module map\n\n", stream);
     p101_fputs(env, err, "> Parser note: this report consumes Clang AST facts from `p101-wrapper-audit`; the module design checks are still teaching heuristics, not proof obligations.\n\n", stream);
+    if(args->library_mode)
+    {
+        p101_fputs(env, err, "> Library mode: public API use and raw wrapper-boundary calls require external consumers, so this report omits those closed-world checks.\n\n", stream);
+    }
     p101_fprintf(env, err, stream, "Files scanned: `%zu`\n\n", map->file_count);
     p101_fprintf(env, err, stream, "Modules found: `%zu`\n\n", map->module_count);
     p101_fprintf(env, err, stream, "Functions found: `%zu`\n\n", map->function_count);
@@ -228,11 +258,22 @@ void p101_module_map_write_include_graph(const struct p101_env *env, struct p101
 
 bool p101_module_map_write_findings(const struct p101_env *env, struct p101_error *err, FILE *stream, const struct arguments *args, const struct project_map *map)
 {
-    bool wrote;
+    bool   wrote;
+    bool   first_json;
+    size_t finding_count;
 
     P101_TRACE(env);
-    wrote = false;
-    p101_fputs(env, err, "## Teaching notes\n\n", stream);
+    wrote         = false;
+    first_json    = true;
+    finding_count = 0U;
+    if(args->json)
+    {
+        p101_fputs(env, err, "{\"schema\":\"p101-module-map-findings-v1\",\"findings\":[", stream);
+    }
+    else
+    {
+        p101_fputs(env, err, "## Teaching notes\n\n", stream);
+    }
 
     for(size_t i = 0; i < map->module_count; i++)
     {
@@ -241,31 +282,52 @@ bool p101_module_map_write_findings(const struct p101_env *env, struct p101_erro
         module = &map->modules[i];
         if(module->source_count > 0U && module->header_count == 0U && p101_strcmp(env, module->name, "main") != 0)
         {
-            p101_fprintf(env, err, stream, "- `%s` has source code but no matching header. If other modules should use it, create a small public interface.\n", module->name);
+            p101_module_map_write_finding(env, err, stream, args, &first_json, &finding_count, "P101-MOD-001", module->name, 0U, "`%s` has source code but no matching header. If other modules should use it, create a small public interface.", module->name);
             wrote = true;
         }
 
-        if(module->function_count > args->max_functions)
+        if(!args->library_mode && module->function_count > args->max_functions)
         {
-            p101_fprintf(env, err, stream, "- `%s` has %zu functions. Consider splitting one responsibility into another module.\n", module->name, module->function_count);
+            p101_module_map_write_finding(env, err, stream, args, &first_json, &finding_count, "P101-MOD-002", module->name, 0U, "`%s` has %zu functions. Consider splitting one responsibility into another module.", module->name, module->function_count);
             wrote = true;
         }
 
-        if(module->public_function_count > args->max_public)
+        if(!args->library_mode && module->public_function_count > args->max_public)
         {
-            p101_fprintf(env, err, stream, "- `%s` exposes %zu non-static functions. Consider making helpers `static` or narrowing the public API.\n", module->name, module->public_function_count);
+            p101_module_map_write_finding(env,
+                                          err,
+                                          stream,
+                                          args,
+                                          &first_json,
+                                          &finding_count,
+                                          "P101-MOD-003",
+                                          module->name,
+                                          0U,
+                                          "`%s` exposes %zu non-static functions. Consider making helpers `static` or narrowing the public API.",
+                                          module->name,
+                                          module->public_function_count);
             wrote = true;
         }
 
-        if(p101_strcmp(env, module->name, "main") == 0 && module->function_count > 3U)
+        if(!args->library_mode && p101_strcmp(env, module->name, "main") == 0 && module->function_count > 3U)
         {
-            p101_fprintf(env, err, stream, "- `main` has %zu functions. Students usually do better when `main.c` only wires argument parsing, setup, and top-level control flow.\n", module->function_count);
+            p101_module_map_write_finding(env,
+                                          err,
+                                          stream,
+                                          args,
+                                          &first_json,
+                                          &finding_count,
+                                          "P101-MOD-004",
+                                          "main.c",
+                                          0U,
+                                          "`main` has %zu functions. Students usually do better when `main.c` only wires argument parsing, setup, and top-level control flow.",
+                                          module->function_count);
             wrote = true;
         }
 
-        if((p101_strcmp(env, module->name, "util") == 0 || p101_strcmp(env, module->name, "utils") == 0) && module->function_count > 4U)
+        if(!args->library_mode && (p101_strcmp(env, module->name, "util") == 0 || p101_strcmp(env, module->name, "utils") == 0) && module->function_count > 4U)
         {
-            p101_fprintf(env, err, stream, "- `%s` looks like a utility dumping ground. Try naming modules after responsibilities instead.\n", module->name);
+            p101_module_map_write_finding(env, err, stream, args, &first_json, &finding_count, "P101-MOD-005", module->name, 0U, "`%s` looks like a utility dumping ground. Try naming modules after responsibilities instead.", module->name);
             wrote = true;
         }
     }
@@ -275,51 +337,99 @@ bool p101_module_map_write_findings(const struct p101_env *env, struct p101_erro
         const struct function_record *function;
 
         function = &map->functions[i];
-        if(!function->is_header_declaration && !function->is_static && !p101_module_map_function_used_outside_module(env, map, function) && p101_strcmp(env, function->name, "main") != 0)
+        if(!args->library_mode && !function->is_header_declaration && !function->is_static && !p101_module_map_function_has_header_declaration(env, map, function) && !p101_module_map_function_used_outside_module(env, map, function) &&
+           p101_strcmp(env, function->name, "main") != 0)
         {
-            p101_fprintf(env, err, stream, "- `%s` in `%s` is non-static but does not appear to be part of a used module interface. Prefer `static`; only leave it public when another module must call it through the header.\n", function->name, function->path);
+            p101_module_map_write_finding(env,
+                                          err,
+                                          stream,
+                                          args,
+                                          &first_json,
+                                          &finding_count,
+                                          "P101-MOD-006",
+                                          function->path,
+                                          function->line,
+                                          "`%s` is non-static but does not appear to be part of a used module interface. Prefer `static`; only leave it public when another module must call it through the header.",
+                                          function->name);
             wrote = true;
         }
 
-        if(function->is_header_declaration && !p101_module_map_function_has_non_static_definition(env, map, function))
+        if(function->is_header_declaration && (!args->library_mode || p101_module_map_module_has_source(env, map, function->module)) && !p101_module_map_function_has_non_static_definition(env, map, function))
         {
-            p101_fprintf(env, err, stream, "- `%s` is declared in `%s`, but no matching non-static definition was found. Remove the declaration or make the implementation match the public API.\n", function->name, function->path);
+            p101_module_map_write_finding(env,
+                                          err,
+                                          stream,
+                                          args,
+                                          &first_json,
+                                          &finding_count,
+                                          "P101-MOD-007",
+                                          function->path,
+                                          function->line,
+                                          "`%s` is declared here, but no matching non-static definition was found. Remove the declaration or make the implementation match the public API.",
+                                          function->name);
             wrote = true;
         }
 
-        if(function->is_header_declaration && !p101_module_map_module_used_outside_module(env, map, function->module) && p101_strcmp(env, function->module, "main") != 0)
+        if(!args->library_mode && function->is_header_declaration && !p101_module_map_module_used_outside_module(env, map, function->module) && p101_strcmp(env, function->module, "main") != 0)
         {
-            p101_fprintf(env, err, stream, "- `%s` is declared in `%s`, but no other module includes `%s`'s interface. Keep helpers `static` and remove header declarations until another file needs them.\n", function->name, function->path, function->module);
+            p101_module_map_write_finding(env,
+                                          err,
+                                          stream,
+                                          args,
+                                          &first_json,
+                                          &finding_count,
+                                          "P101-MOD-008",
+                                          function->path,
+                                          function->line,
+                                          "`%s` is declared here, but no other module includes `%s`'s interface. Keep helpers `static` and remove header declarations until another file needs them.",
+                                          function->name,
+                                          function->module);
             wrote = true;
         }
     }
 
-    for(size_t i = 0; i < map->macro_count; i++)
+    for(size_t i = 0; !args->library_mode && i < map->macro_count; i++)
     {
         const struct macro_record *macro;
 
         macro = &map->macros[i];
         if(!p101_module_map_module_used_outside_module(env, map, macro->module) && !p101_module_map_symbol_used_outside_module(env, map, macro->module, macro->name))
         {
-            p101_fprintf(env,
-                         err,
-                         stream,
-                         "- Macro `%s` is exposed in `%s`, but the module interface does not appear to be used outside `%s`. Prefer a private enum/constant in the `.c` file until another module needs it.\n",
-                         macro->name,
-                         macro->path,
-                         macro->module);
+            p101_module_map_write_finding(env,
+                                          err,
+                                          stream,
+                                          args,
+                                          &first_json,
+                                          &finding_count,
+                                          "P101-MOD-009",
+                                          macro->path,
+                                          macro->line,
+                                          "Macro `%s` is exposed, but the module interface does not appear to be used outside `%s`. Prefer a private enum/constant in the `.c` file until another module needs it.",
+                                          macro->name,
+                                          macro->module);
             wrote = true;
         }
     }
 
-    for(size_t i = 0; i < map->type_count; i++)
+    for(size_t i = 0; !args->library_mode && i < map->type_count; i++)
     {
         const struct type_record *type;
 
         type = &map->types[i];
         if(!p101_module_map_module_used_outside_module(env, map, type->module))
         {
-            p101_fprintf(env, err, stream, "- Type `%s` is exposed in `%s`, but no other module includes `%s`'s interface. Keep representation details private or make the type opaque until callers need it.\n", type->name, type->path, type->module);
+            p101_module_map_write_finding(env,
+                                          err,
+                                          stream,
+                                          args,
+                                          &first_json,
+                                          &finding_count,
+                                          "P101-MOD-010",
+                                          type->path,
+                                          type->line,
+                                          "Type `%s` is exposed, but no other module includes `%s`'s interface. Keep representation details private or make the type opaque until callers need it.",
+                                          type->name,
+                                          type->module);
             wrote = true;
         }
     }
@@ -331,33 +441,71 @@ bool p101_module_map_write_findings(const struct p101_env *env, struct p101_erro
         include = &map->includes[i];
         if(include->is_local && p101_module_map_module_has_direct_include(env, map, include->target, include->from_module) && p101_strcmp(env, include->from_module, include->target) != 0)
         {
-            p101_fprintf(env, err, stream, "- `%s` and `%s` include each other. That direct cycle is a design smell; introduce a smaller shared interface.\n", include->from_module, include->target);
+            p101_module_map_write_finding(env,
+                                          err,
+                                          stream,
+                                          args,
+                                          &first_json,
+                                          &finding_count,
+                                          "P101-MOD-011",
+                                          include->path,
+                                          include->line,
+                                          "`%s` and `%s` include each other. That direct cycle is a design smell; introduce a smaller shared interface.",
+                                          include->from_module,
+                                          include->target);
             wrote = true;
         }
 
         if(include->is_local && !p101_module_map_include_target_exists(env, map, include->target))
         {
-            p101_fprintf(env, err, stream, "- `%s` includes local header `%s`, but no scanned module named `%s` was found. Check for a stale include or add the missing module to the scan path.\n", include->path, include->target, include->target);
+            p101_module_map_write_finding(env,
+                                          err,
+                                          stream,
+                                          args,
+                                          &first_json,
+                                          &finding_count,
+                                          "P101-MOD-012",
+                                          include->path,
+                                          include->line,
+                                          "This file includes local header `%s`, but no scanned module named `%s` was found. Check for a stale include or add the missing module to the scan path.",
+                                          include->target,
+                                          include->target);
             wrote = true;
         }
 
         if(include->is_local && !p101_module_map_layer_allows_include(env, err, args, include->from_module, include->target))
         {
-            p101_fprintf(env,
-                         err,
-                         stream,
-                         "- `%s` includes `%s`, but that edge is not allowed by `%s`. Add `%s -> %s` only if this dependency is intentional.\n",
-                         include->from_module,
-                         include->target,
-                         args->layer_config_path,
-                         include->from_module,
-                         include->target);
+            p101_module_map_write_finding(env,
+                                          err,
+                                          stream,
+                                          args,
+                                          &first_json,
+                                          &finding_count,
+                                          "P101-MOD-013",
+                                          include->path,
+                                          include->line,
+                                          "`%s` includes `%s`, but that edge is not allowed by `%s`. Add `%s -> %s` only if this dependency is intentional.",
+                                          include->from_module,
+                                          include->target,
+                                          args->layer_config_path,
+                                          include->from_module,
+                                          include->target);
             wrote = true;
         }
 
-        if(!include->is_local && p101_module_map_is_platform_specific_include(env, include->target))
+        if(!args->library_mode && !include->is_local && p101_module_map_is_platform_specific_include(env, include->target))
         {
-            p101_fprintf(env, err, stream, "- `%s` includes platform-specific header `<%s>`. Put that behind a p101 wrapper or a clearly named portability boundary.\n", include->path, include->target);
+            p101_module_map_write_finding(env,
+                                          err,
+                                          stream,
+                                          args,
+                                          &first_json,
+                                          &finding_count,
+                                          "P101-MOD-014",
+                                          include->path,
+                                          include->line,
+                                          "This file includes platform-specific header `<%s>`. Put that behind a p101 wrapper or a clearly named portability boundary.",
+                                          include->target);
             wrote = true;
         }
     }
@@ -369,18 +517,38 @@ bool p101_module_map_write_findings(const struct p101_env *env, struct p101_erro
         module = &map->modules[i];
         if(module->creates_error_object && !module->destroys_error_object)
         {
-            p101_fprintf(env, err, stream, "- `%s` creates a `p101_error`, but no matching `p101_error_destroy` was detected in that module. Keep ownership local unless the API explicitly transfers it.\n", module->name);
+            p101_module_map_write_finding(env,
+                                          err,
+                                          stream,
+                                          args,
+                                          &first_json,
+                                          &finding_count,
+                                          "P101-MOD-015",
+                                          module->name,
+                                          0U,
+                                          "`%s` creates a `p101_error`, but no matching `p101_error_destroy` was detected in that module. Keep ownership local unless the API explicitly transfers it.",
+                                          module->name);
             wrote = true;
         }
 
         if(module->creates_env_object && !module->destroys_env_object)
         {
-            p101_fprintf(env, err, stream, "- `%s` creates a `p101_env`, but no matching `p101_env_destroy` was detected in that module. The module that creates an environment should normally destroy it.\n", module->name);
+            p101_module_map_write_finding(env,
+                                          err,
+                                          stream,
+                                          args,
+                                          &first_json,
+                                          &finding_count,
+                                          "P101-MOD-016",
+                                          module->name,
+                                          0U,
+                                          "`%s` creates a `p101_env`, but no matching `p101_env_destroy` was detected in that module. The module that creates an environment should normally destroy it.",
+                                          module->name);
             wrote = true;
         }
     }
 
-    for(size_t i = 0; i < map->call_count; i++)
+    for(size_t i = 0; !args->library_mode && i < map->call_count; i++)
     {
         const struct call_record *call;
         const char               *library;
@@ -389,17 +557,115 @@ bool p101_module_map_write_findings(const struct p101_env *env, struct p101_erro
         library = p101_module_map_raw_call_library(env, call->name);
         if(library != NULL)
         {
-            p101_fprintf(env, err, stream, "- `%s` calls raw `%s` at `%s:%zu`. Prefer the p101 wrapper from `%s`, or add a wrapper if this is an intentional portability boundary.\n", call->module, call->name, call->path, call->line, library);
+            p101_module_map_write_finding(env,
+                                          err,
+                                          stream,
+                                          args,
+                                          &first_json,
+                                          &finding_count,
+                                          "P101-MOD-017",
+                                          call->path,
+                                          call->line,
+                                          "`%s` calls raw `%s`. Prefer the p101 wrapper from `%s`, or add a wrapper if this is an intentional portability boundary.",
+                                          call->module,
+                                          call->name,
+                                          library);
             wrote = true;
         }
     }
 
-    if(!wrote)
+    if(args->json)
     {
-        p101_fputs(env, err, "No obvious module-structure issues found by the v1 heuristics.\n", stream);
+        p101_fprintf(env, err, stream, "],\"summary\":{\"files_scanned\":%zu,\"modules\":%zu,\"functions\":%zu,\"findings\":%zu}}\n", map->file_count, map->module_count, map->function_count, finding_count);
+    }
+    else if(!wrote)
+    {
+        p101_fputs(env, err, "No obvious module-structure issues found by the current heuristics.\n", stream);
     }
 
     return wrote;
+}
+
+static void p101_module_map_write_finding(const struct p101_env *env, struct p101_error *err, FILE *stream, const struct arguments *args, bool *first_json, size_t *finding_count, const char *id, const char *path, size_t line, const char *format, ...)
+{
+    char    message[MAX_LINE];
+    va_list arguments;
+
+    P101_TRACE(env);
+    va_start(arguments, format);
+    (void)p101_vsnprintf(env, err, message, sizeof(message), format, arguments);
+    va_end(arguments);
+    if(p101_error_has_error(err))
+    {
+        goto done;
+    }
+
+    (*finding_count)++;
+    if(args->json)
+    {
+        if(!*first_json)
+        {
+            p101_fputc(env, err, ',', stream);
+        }
+        *first_json = false;
+        p101_fputs(env, err, "{\"id\":", stream);
+        p101_module_map_write_json_string(env, err, stream, id);
+        p101_fputs(env, err, ",\"severity\":\"warning\",\"location\":{\"path\":", stream);
+        p101_module_map_write_json_string(env, err, stream, path);
+        p101_fprintf(env, err, stream, ",\"line\":%zu},\"message\":", line);
+        p101_module_map_write_json_string(env, err, stream, message);
+        p101_fputs(env, err, ",\"evidence\":{\"fact_schema\":\"P101FACT-v2\"}}", stream);
+    }
+    else
+    {
+        p101_fprintf(env, err, stream, "- %s: %s", id, message);
+        if(path != NULL && path[0] != '\0')
+        {
+            p101_fprintf(env, err, stream, " (`%s:%zu`)", path, line);
+        }
+        p101_fputc(env, err, '\n', stream);
+    }
+
+done:
+    return;
+}
+
+static void p101_module_map_write_json_string(const struct p101_env *env, struct p101_error *err, FILE *stream, const char *text)
+{
+    P101_TRACE(env);
+    p101_fputc(env, err, '"', stream);
+    for(const unsigned char *cursor = (const unsigned char *)text; cursor != NULL && *cursor != '\0'; cursor++)
+    {
+        switch(*cursor)
+        {
+            case '"':
+                p101_fputs(env, err, "\\\"", stream);
+                break;
+            case '\\':
+                p101_fputs(env, err, "\\\\", stream);
+                break;
+            case '\n':
+                p101_fputs(env, err, "\\n", stream);
+                break;
+            case '\r':
+                p101_fputs(env, err, "\\r", stream);
+                break;
+            case '\t':
+                p101_fputs(env, err, "\\t", stream);
+                break;
+            default:
+                if(*cursor < ASCII_CONTROL_LIMIT)
+                {
+                    p101_fprintf(env, err, stream, "\\u%04x", (unsigned)*cursor);
+                }
+                else
+                {
+                    p101_fputc(env, err, *cursor, stream);
+                }
+                break;
+        }
+    }
+    p101_fputc(env, err, '"', stream);
 }
 
 void p101_module_map_write_functions_for_module(const struct p101_env *env, struct p101_error *err, FILE *stream, const struct project_map *map, const char *module_name)

@@ -72,6 +72,55 @@ static void test_parse_accepts_compile_database(void)
     TEST_ASSERT_EQUAL_STRING("src", args.paths[0]);
 }
 
+static void test_parse_accepts_library_mode(void)
+{
+    char            *argv[] = {"p101-module-map", "-L", "src", NULL};
+    struct arguments args;
+
+    reset_getopt();
+    p101_memset(env, &args, 0, sizeof(args));
+    p101_module_map_arguments_init(env, &args);
+
+    p101_module_map_parse_arguments(env, error, 3, argv, &args);
+    p101_module_map_check_arguments(env, error, &args);
+
+    TEST_ASSERT_FALSE(p101_error_has_error(error));
+    TEST_ASSERT_TRUE(args.library_mode);
+    TEST_ASSERT_EQUAL_STRING("src", args.paths[0]);
+}
+
+static void test_parse_accepts_json_fact_snapshot(void)
+{
+    char            *argv[] = {"p101-module-map", "-j", "-i", "facts.tsv", "src", NULL};
+    struct arguments args;
+
+    reset_getopt();
+    p101_memset(env, &args, 0, sizeof(args));
+    p101_module_map_arguments_init(env, &args);
+
+    p101_module_map_parse_arguments(env, error, 5, argv, &args);
+    p101_module_map_check_arguments(env, error, &args);
+
+    TEST_ASSERT_FALSE(p101_error_has_error(error));
+    TEST_ASSERT_TRUE(args.json);
+    TEST_ASSERT_EQUAL_STRING("facts.tsv", args.facts_path);
+}
+
+static void test_fact_snapshot_conflicts_with_compile_database(void)
+{
+    char            *argv[] = {"p101-module-map", "-i", "facts.tsv", "-C", "compile_commands.json", NULL};
+    struct arguments args;
+
+    reset_getopt();
+    p101_memset(env, &args, 0, sizeof(args));
+    p101_module_map_arguments_init(env, &args);
+
+    p101_module_map_parse_arguments(env, error, 5, argv, &args);
+    p101_module_map_check_arguments(env, error, &args);
+
+    TEST_ASSERT_TRUE(p101_error_has_error(error));
+}
+
 static void test_basename_no_suffix(void)
 {
     char name[MAX_NAME];
@@ -81,6 +130,12 @@ static void test_basename_no_suffix(void)
 
     p101_module_map_include_to_module(env, name, sizeof(name), "p101/foo/bar.h");
     TEST_ASSERT_EQUAL_STRING("bar", name);
+
+    p101_module_map_include_to_module(env, name, sizeof(name), "p101/foo/p101_widget.h");
+    TEST_ASSERT_EQUAL_STRING("widget", name);
+
+    p101_module_map_normalize_module_name(env, name, sizeof(name), "lib_posix/p101_mman");
+    TEST_ASSERT_EQUAL_STRING("lib_posix/mman", name);
 }
 
 static void test_public_function_requires_used_interface(void)
@@ -115,6 +170,7 @@ static void test_public_function_requires_used_interface(void)
     p101_module_map_add_function(env, error, &map, &header, "tool_run", 5, false, true);
 
     function = &map.functions[0];
+    TEST_ASSERT_TRUE(p101_module_map_function_has_header_declaration(env, &map, function));
     TEST_ASSERT_FALSE(p101_module_map_function_used_outside_module(env, &map, function));
 
     p101_module_map_add_include(env, error, &map, &caller, "tool.h", 3, true);
@@ -127,6 +183,9 @@ int main(void)
     UNITY_BEGIN();
     RUN_TEST(test_parse_accepts_layer_config);
     RUN_TEST(test_parse_accepts_compile_database);
+    RUN_TEST(test_parse_accepts_library_mode);
+    RUN_TEST(test_parse_accepts_json_fact_snapshot);
+    RUN_TEST(test_fact_snapshot_conflicts_with_compile_database);
     RUN_TEST(test_basename_no_suffix);
     RUN_TEST(test_public_function_requires_used_interface);
     return UNITY_END();

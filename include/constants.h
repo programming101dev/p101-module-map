@@ -3,6 +3,8 @@
 
 enum
 {
+    EXIT_FINDINGS         = 1,
+    EXIT_TROUBLE          = 2,
     MAX_MODULES           = 512,
     MAX_FILES             = 1024,
     MAX_FUNCTIONS         = 4096,

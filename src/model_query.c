@@ -96,6 +96,17 @@ bool p101_module_map_function_used_outside_module(const struct p101_env *env, co
         goto done;
     }
 
+    ret_val = p101_module_map_function_has_header_declaration(env, map, function);
+
+done:
+    return ret_val;
+}
+
+bool p101_module_map_function_has_header_declaration(const struct p101_env *env, const struct project_map *map, const struct function_record *function)
+{
+    bool ret_val;
+
+    ret_val = false;
     for(size_t i = 0; i < map->function_count; i++)
     {
         if(map->functions[i].is_header_declaration && p101_strcmp(env, map->functions[i].name, function->name) == 0 && p101_strcmp(env, map->functions[i].module, function->module) == 0)
@@ -105,7 +116,6 @@ bool p101_module_map_function_used_outside_module(const struct p101_env *env, co
         }
     }
 
-done:
     return ret_val;
 }
 

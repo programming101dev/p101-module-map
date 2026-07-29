@@ -1,4 +1,5 @@
 #include "cli.h"
+#include "constants.h"
 #include "errors.h"
 #include "runner.h"
 #include <p101_c/p101_stdio.h>
@@ -12,7 +13,7 @@ int main(int argc, char *argv[])
     struct arguments   args;
     int                ret_val;
 
-    ret_val = EXIT_FAILURE;
+    ret_val = EXIT_TROUBLE;
     err     = p101_error_create(false);
     env     = p101_env_create(err, NULL);
 
@@ -43,11 +44,11 @@ done:
     {
         if(p101_error_is_error(err, P101_ERROR_USER, ERR_USAGE))
         {
-            p101_module_map_usage(env, err, argv[0], EXIT_FAILURE, p101_error_get_message(err));
+            p101_module_map_usage(env, err, argv[0], EXIT_TROUBLE, p101_error_get_message(err));
         }
 
         p101_fprintf(env, err, stderr, "%s\n", p101_error_get_message(err));
-        ret_val = EXIT_FAILURE;
+        ret_val = EXIT_TROUBLE;
     }
 
     p101_env_destroy(env);

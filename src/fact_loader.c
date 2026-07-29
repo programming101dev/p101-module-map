@@ -4,6 +4,7 @@
 #include "fact_command.h"
 #include "model_mutation.h"
 #include "model_notes.h"
+#include "strings.h"
 #include <p101_c/p101_stdio.h>
 #include <p101_c/p101_string.h>
 #include <p101_c_facts/facts.h>
@@ -50,7 +51,10 @@ static struct source_file *p101_module_map_file_for_fact(const struct p101_env *
     file = p101_module_map_find_fact_file(env, map, fact->path);
     if(file == NULL)
     {
-        p101_module_map_add_source_file(env, err, map, fact->path, fact->is_header);
+        char module_name[MAX_NAME];
+
+        p101_module_map_normalize_module_name(env, module_name, sizeof(module_name), fact->module);
+        p101_module_map_add_named_source_file(env, err, map, fact->path, module_name, fact->is_header);
         file = p101_module_map_find_fact_file(env, map, fact->path);
     }
 
@@ -180,24 +184,32 @@ void p101_module_map_load_clang_facts(const struct p101_env *env, struct p101_er
     FILE *stream;
     char  command[MAX_COMMAND];
     char  line[MAX_LINE];
+    bool  is_pipe;
 
     P101_TRACE(env);
-    stream = NULL;
-    p101_module_map_build_fact_command(env, err, command, sizeof(command), args);
-    if(p101_error_has_error(err))
+    stream  = NULL;
+    is_pipe = args->facts_path == NULL;
+    if(is_pipe)
     {
-        goto done;
-    }
-    if(args->verbose)
-    {
-        p101_fprintf(env, err, stderr, "p101-module-map: fact command: %s\n", command);
+        p101_module_map_build_fact_command(env, err, command, sizeof(command), args);
         if(p101_error_has_error(err))
         {
             goto done;
         }
+        if(args->verbose)
+        {
+            p101_fprintf(env, err, stderr, "p101-module-map: fact command: %s\n", command);
+            if(p101_error_has_error(err))
+            {
+                goto done;
+            }
+        }
+        stream = p101_popen(env, err, command, "r");
     }
-
-    stream = p101_popen(env, err, command, "r");
+    else
+    {
+        stream = p101_fopen(env, err, args->facts_path, "r");
+    }
     if(stream == NULL)
     {
         goto done;
@@ -235,7 +247,7 @@ void p101_module_map_load_clang_facts(const struct p101_env *env, struct p101_er
         goto done;
     }
 
-    if(p101_pclose(env, err, stream) != 0)
+    if(is_pipe && p101_pclose(env, err, stream) != 0)
     {
         stream = NULL;
         if(p101_error_has_no_error(err))
@@ -244,11 +256,27 @@ void p101_module_map_load_clang_facts(const struct p101_env *env, struct p101_er
         }
         goto done;
     }
+    if(!is_pipe)
+    {
+        p101_fclose(env, err, stream);
+        if(p101_error_has_error(err))
+        {
+            stream = NULL;
+            goto done;
+        }
+    }
     stream = NULL;
 
 done:
     if(stream != NULL)
     {
-        (void)p101_pclose(env, NULL, stream);
+        if(is_pipe)
+        {
+            (void)p101_pclose(env, NULL, stream);
+        }
+        else
+        {
+            p101_fclose(env, NULL, stream);
+        }
     }
 }

@@ -169,6 +169,7 @@ void p101_module_map_build_fact_command(const struct p101_env *env, struct p101_
     if(compile_db != NULL && p101_error_has_no_error(err))
     {
         p101_module_map_append_compile_database(env, err, command, command_size, compile_db);
+        p101_module_map_append_checked(env, err, command, command_size, " --compile-db-only");
     }
     p101_module_map_append_include_roots(env, err, command, command_size, ".");
     p101_module_map_append_include_roots(env, err, command, command_size, "include");

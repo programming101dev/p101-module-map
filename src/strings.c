@@ -33,8 +33,12 @@ void p101_module_map_basename_no_suffix(const struct p101_env *env, char *destin
 
     P101_TRACE(env);
     base = p101_module_map_path_basename(env, path);
-    dot  = p101_strrchr(env, base, '.');
-    len  = (dot == NULL) ? p101_strlen(env, base) : (size_t)(dot - base);
+    if(p101_strncmp(env, base, "p101_", sizeof("p101_") - 1U) == 0)
+    {
+        base += sizeof("p101_") - 1U;
+    }
+    dot = p101_strrchr(env, base, '.');
+    len = (dot == NULL) ? p101_strlen(env, base) : (size_t)(dot - base);
     if(len >= destination_size)
     {
         len = destination_size - 1U;
@@ -49,7 +53,35 @@ void p101_module_map_basename_no_suffix(const struct p101_env *env, char *destin
 
 void p101_module_map_include_to_module(const struct p101_env *env, char *destination, size_t destination_size, const char *include_name)
 {
-    p101_module_map_basename_no_suffix(env, destination, destination_size, include_name);
+    if(include_name[0] == '@')
+    {
+        p101_module_map_copy_string(env, destination, destination_size, include_name + 1);
+    }
+    else
+    {
+        p101_module_map_basename_no_suffix(env, destination, destination_size, include_name);
+    }
+}
+
+void p101_module_map_normalize_module_name(const struct p101_env *env, char *destination, size_t destination_size, const char *module_name)
+{
+    const char *base;
+    const char *slash;
+    char        normalized[MAX_NAME];
+    size_t      prefix_length;
+
+    slash         = p101_strrchr(env, module_name, '/');
+    base          = slash == NULL ? module_name : slash + 1;
+    prefix_length = slash == NULL ? 0U : (size_t)(base - module_name);
+    p101_module_map_basename_no_suffix(env, normalized, sizeof(normalized), base);
+
+    if(prefix_length >= destination_size)
+    {
+        prefix_length = destination_size - 1U;
+    }
+    p101_memcpy(env, destination, module_name, prefix_length);
+    destination[prefix_length] = '\0';
+    p101_module_map_append_string(env, destination, destination_size, normalized);
 }
 
 char *p101_module_map_trim_left(const struct p101_env *env, char *text)

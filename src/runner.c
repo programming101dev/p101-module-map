@@ -18,7 +18,7 @@ int p101_module_map_run(const struct p101_env *env, struct p101_error *err, cons
     P101_TRACE(env);
     p101_memset(env, &map, 0, sizeof(map));
     stream  = stdout;
-    ret_val = EXIT_FAILURE;
+    ret_val = EXIT_TROUBLE;
 
     p101_module_map_load_clang_facts(env, err, &map, args);
     if(p101_error_has_error(err))
@@ -40,7 +40,7 @@ int p101_module_map_run(const struct p101_env *env, struct p101_error *err, cons
     {
         if(has_findings)
         {
-            ret_val = EXIT_FAILURE;
+            ret_val = EXIT_FINDINGS;
         }
         else
         {
@@ -49,7 +49,7 @@ int p101_module_map_run(const struct p101_env *env, struct p101_error *err, cons
     }
     else
     {
-        ret_val = EXIT_FAILURE;
+        ret_val = EXIT_TROUBLE;
     }
 
 done:

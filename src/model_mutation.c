@@ -38,9 +38,17 @@ done:
 
 void p101_module_map_add_source_file(const struct p101_env *env, struct p101_error *err, struct project_map *map, const char *path, bool is_header)
 {
+    char module_name[MAX_NAME];
+
+    P101_TRACE(env);
+    p101_module_map_basename_no_suffix(env, module_name, sizeof(module_name), path);
+    p101_module_map_add_named_source_file(env, err, map, path, module_name, is_header);
+}
+
+void p101_module_map_add_named_source_file(const struct p101_env *env, struct p101_error *err, struct project_map *map, const char *path, const char *module_name, bool is_header)
+{
     struct source_file *file;
     struct module      *module;
-    char                module_name[MAX_NAME];
 
     P101_TRACE(env);
     if(map->file_count >= MAX_FILES)
@@ -49,7 +57,6 @@ void p101_module_map_add_source_file(const struct p101_env *env, struct p101_err
         goto done;
     }
 
-    p101_module_map_basename_no_suffix(env, module_name, sizeof(module_name), path);
     module = p101_module_map_get_module(env, err, map, module_name);
     if(module == NULL)
     {

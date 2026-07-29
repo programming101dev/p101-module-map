@@ -28,7 +28,7 @@ the scan.
 ## Usage
 
 ```sh
-p101-module-map [-h] [-v] [-o <report.md>] [-l <layers.txt>] [-m <max-functions>] [-p <max-public>] [-C <compile_commands.json>] [-F <p101-wrapper-audit>] [path...]
+p101-module-map [-h] [-j] [-L] [-v] [-o <report>] [-l <layers.txt>] [-m <max-functions>] [-p <max-public>] [-i <facts.tsv> | -C <compile_commands.json> | -F <p101-wrapper-audit>] [path...]
 ```
 
 Examples:
@@ -39,15 +39,30 @@ p101-module-map -o module-map.md src include
 p101-module-map -l layers.txt src include
 p101-module-map -m 8 -p 4 programs/simple-port-forwarder/src
 p101-module-map -C build-clang/compile_commands.json src include
+p101-module-map -L -C build-clang/compile_commands.json src include
+p101-module-map -i source-facts.tsv -o module-map.md src include
+p101-module-map -j -i source-facts.tsv -o module-map.json src include
 p101-module-map -F ../p101-wrapper-audit/p101-wrapper-audit src include
 ```
 
 With no paths, `p101-module-map` scans the current directory.
 
+`-L` selects library mode. A library repo cannot prove that its public
+functions, types, or macros are unused without scanning external consumers, and
+its implementation must call the underlying APIs at wrapper boundaries.
+Library mode therefore retains local structural checks while omitting those
+closed-world findings. When a compile database is supplied, declarations for a
+module with no active source translation unit are also excluded; this supports
+source-controlled, non-installed platform placeholders. Installed-header/link
+validation remains the build system's responsibility.
+
 The tool automatically uses the current project's Clang compilation database
 from `.last-build-dir` or `build-clang/compile_commands.json`. This preserves
 sibling-library include roots, feature-test macros, and other project flags.
 Use `-C` to select a different database explicitly.
+Use `-i` to consume an existing P101FACT v2 snapshot without starting another
+Clang AST pass. `-j` writes normalized findings with `id`, `severity`,
+`location`, `message`, and `evidence`.
 
 The Clang fact tool is resolved in this order:
 
@@ -72,8 +87,9 @@ reported as a teaching note.
 
 | Status | Meaning |
 | --- | --- |
-| `0` | Report was written |
-| `1` | Usage, file, or scan error |
+| `0` | Report was written with no findings |
+| `1` | Report was written and contains one or more findings |
+| `2` | Usage, file, parser, or other tool trouble |
 
 ## Build and check
 
