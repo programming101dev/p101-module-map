@@ -175,7 +175,7 @@ bool p101_module_map_write_report(const struct p101_env *env, struct p101_error 
 {
     bool has_findings;
 
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     if(args->json)
     {
         return p101_module_map_write_findings(env, err, stream, args, map);
@@ -202,7 +202,7 @@ bool p101_module_map_write_report(const struct p101_env *env, struct p101_error 
 
 void p101_module_map_write_modules(const struct p101_env *env, struct p101_error *err, FILE *stream, const struct project_map *map)
 {
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     p101_fputs(env, err, "## Modules\n\n", stream);
     p101_fputs(env, err, "| Module | Source | Header | Functions | Public | Static | Header declarations | Macros | Types | Includes |\n", stream);
     p101_fputs(env, err, "| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |\n", stream);
@@ -239,7 +239,7 @@ void p101_module_map_write_modules(const struct p101_env *env, struct p101_error
 
 void p101_module_map_write_include_graph(const struct p101_env *env, struct p101_error *err, FILE *stream, const struct project_map *map)
 {
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     p101_fputs(env, err, "## Local include graph\n\n", stream);
 
     for(size_t i = 0; i < map->include_count; i++)
@@ -262,7 +262,7 @@ bool p101_module_map_write_findings(const struct p101_env *env, struct p101_erro
     bool   first_json;
     size_t finding_count;
 
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     wrote         = false;
     first_json    = true;
     finding_count = 0U;
@@ -591,7 +591,7 @@ static void p101_module_map_write_finding(const struct p101_env *env, struct p10
     char    message[MAX_LINE];
     va_list arguments;
 
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     va_start(arguments, format);
     (void)p101_vsnprintf(env, err, message, sizeof(message), format, arguments);
     va_end(arguments);
@@ -632,7 +632,7 @@ done:
 
 static void p101_module_map_write_json_string(const struct p101_env *env, struct p101_error *err, FILE *stream, const char *text)
 {
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     p101_fputc(env, err, '"', stream);
     for(const unsigned char *cursor = (const unsigned char *)text; cursor != NULL && *cursor != '\0'; cursor++)
     {
@@ -672,7 +672,7 @@ void p101_module_map_write_functions_for_module(const struct p101_env *env, stru
 {
     bool wrote;
 
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     wrote = false;
 
     for(size_t i = 0; i < map->function_count; i++)

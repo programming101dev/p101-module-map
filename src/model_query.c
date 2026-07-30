@@ -88,18 +88,7 @@ bool p101_module_map_module_used_outside_module(const struct p101_env *env, cons
 
 bool p101_module_map_function_used_outside_module(const struct p101_env *env, const struct project_map *map, const struct function_record *function)
 {
-    bool ret_val;
-
-    ret_val = false;
-    if(!p101_module_map_module_used_outside_module(env, map, function->module))
-    {
-        goto done;
-    }
-
-    ret_val = p101_module_map_function_has_header_declaration(env, map, function);
-
-done:
-    return ret_val;
+    return p101_module_map_symbol_used_outside_module(env, map, function->module, function->name);
 }
 
 bool p101_module_map_function_has_header_declaration(const struct p101_env *env, const struct project_map *map, const struct function_record *function)

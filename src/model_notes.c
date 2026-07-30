@@ -10,7 +10,7 @@ static struct module *p101_module_map_get_note_module(const struct p101_env *env
 {
     struct module *module;
 
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     module = NULL;
 
     for(size_t i = 0; i < map->module_count; i++)
@@ -40,7 +40,7 @@ void p101_module_map_note_error_use(const struct p101_env *env, struct p101_erro
 {
     struct module *module;
 
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     module = p101_module_map_get_note_module(env, err, map, file);
     if(module != NULL)
     {
@@ -52,7 +52,7 @@ void p101_module_map_note_error_check(const struct p101_env *env, struct p101_er
 {
     struct module *module;
 
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     module = p101_module_map_get_note_module(env, err, map, file);
     if(module != NULL)
     {
@@ -64,7 +64,7 @@ void p101_module_map_note_error_create(const struct p101_env *env, struct p101_e
 {
     struct module *module;
 
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     module = p101_module_map_get_note_module(env, err, map, file);
     if(module != NULL)
     {
@@ -76,7 +76,7 @@ void p101_module_map_note_error_destroy(const struct p101_env *env, struct p101_
 {
     struct module *module;
 
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     module = p101_module_map_get_note_module(env, err, map, file);
     if(module != NULL)
     {
@@ -88,7 +88,7 @@ void p101_module_map_note_env_create(const struct p101_env *env, struct p101_err
 {
     struct module *module;
 
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     module = p101_module_map_get_note_module(env, err, map, file);
     if(module != NULL)
     {
@@ -100,7 +100,7 @@ void p101_module_map_note_env_destroy(const struct p101_env *env, struct p101_er
 {
     struct module *module;
 
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     module = p101_module_map_get_note_module(env, err, map, file);
     if(module != NULL)
     {

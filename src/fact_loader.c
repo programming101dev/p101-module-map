@@ -22,7 +22,7 @@ static struct source_file *p101_module_map_find_fact_file(const struct p101_env 
 {
     struct source_file *file;
 
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     file = NULL;
     for(size_t i = 0; i < map->file_count; i++)
     {
@@ -41,7 +41,7 @@ static struct source_file *p101_module_map_file_for_fact(const struct p101_env *
 {
     struct source_file *file;
 
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     file = NULL;
     if(fact == NULL || fact->path == NULL)
     {
@@ -64,7 +64,7 @@ done:
 
 static void p101_module_map_note_call_semantics(const struct p101_env *env, struct p101_error *err, struct project_map *map, const struct source_file *file, const char *name)
 {
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     if(p101_strcmp(env, name, "p101_error_create") == 0)
     {
         p101_module_map_note_error_use(env, err, map, file);
@@ -94,7 +94,7 @@ static void p101_module_map_apply_fact(const struct p101_env *env, struct p101_e
 {
     const struct source_file *file;
 
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     if(fact == NULL)
     {
         goto done;
@@ -158,7 +158,7 @@ static bool p101_module_map_fact_line_is_complete(const struct p101_env *env, st
     bool   complete;
     size_t length;
 
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     complete = true;
     length   = p101_strlen(env, line);
 
@@ -181,14 +181,16 @@ static bool p101_module_map_fact_line_is_complete(const struct p101_env *env, st
 
 void p101_module_map_load_clang_facts(const struct p101_env *env, struct p101_error *err, struct project_map *map, const struct arguments *args)
 {
-    FILE *stream;
-    char  command[MAX_COMMAND];
-    char  line[MAX_LINE];
-    bool  is_pipe;
+    FILE  *stream;
+    char   command[MAX_COMMAND];
+    char   line[MAX_LINE];
+    bool   is_pipe;
+    size_t fact_count;
 
-    P101_TRACE(env);
-    stream  = NULL;
-    is_pipe = args->facts_path == NULL;
+    P101_TRACE_SCOPE(env);
+    stream     = NULL;
+    is_pipe    = args->facts_path == NULL;
+    fact_count = 0U;
     if(is_pipe)
     {
         p101_module_map_build_fact_command(env, err, command, sizeof(command), args);
@@ -240,6 +242,7 @@ void p101_module_map_load_clang_facts(const struct p101_env *env, struct p101_er
         }
 
         p101_module_map_apply_fact(env, err, map, &fact);
+        fact_count++;
     }
 
     if(p101_error_has_error(err))
@@ -266,17 +269,21 @@ void p101_module_map_load_clang_facts(const struct p101_env *env, struct p101_er
         }
     }
     stream = NULL;
+    if(fact_count == 0U && p101_error_has_no_error(err))
+    {
+        P101_ERROR_RAISE_USER(err, "The fact stream did not contain any p101 C facts.", ERR_USAGE);
+    }
 
 done:
     if(stream != NULL)
     {
         if(is_pipe)
         {
-            (void)p101_pclose(env, NULL, stream);
+            (void)p101_pclose(env, err, stream);
         }
         else
         {
-            p101_fclose(env, NULL, stream);
+            p101_fclose(env, err, stream);
         }
     }
 }

@@ -24,7 +24,7 @@ static void p101_module_map_append_checked(const struct p101_env *env, struct p1
     size_t used;
     size_t extra;
 
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     used  = p101_strlen(env, command);
     extra = p101_strlen(env, text);
     if(used + extra >= command_size)
@@ -42,7 +42,7 @@ static void p101_module_map_append_char_checked(const struct p101_env *env, stru
 {
     char text[2];
 
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     text[0] = ch;
     text[1] = '\0';
     p101_module_map_append_checked(env, err, command, command_size, text);
@@ -50,7 +50,7 @@ static void p101_module_map_append_char_checked(const struct p101_env *env, stru
 
 static void p101_module_map_append_shell_quoted(const struct p101_env *env, struct p101_error *err, char *command, size_t command_size, const char *text)
 {
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     p101_module_map_append_char_checked(env, err, command, command_size, '\'');
     for(size_t i = 0; text[i] != '\0' && p101_error_has_no_error(err); i++)
     {
@@ -68,14 +68,14 @@ static void p101_module_map_append_shell_quoted(const struct p101_env *env, stru
 
 static void p101_module_map_append_cflag(const struct p101_env *env, struct p101_error *err, char *command, size_t command_size, const char *flag)
 {
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     p101_module_map_append_checked(env, err, command, command_size, " --cflag=");
     p101_module_map_append_shell_quoted(env, err, command, command_size, flag);
 }
 
 static void p101_module_map_append_compile_database(const struct p101_env *env, struct p101_error *err, char *command, size_t command_size, const char *path)
 {
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     p101_module_map_append_checked(env, err, command, command_size, " --compile-db=");
     p101_module_map_append_shell_quoted(env, err, command, command_size, path);
 }
@@ -85,7 +85,7 @@ static void p101_module_map_append_include_roots(const struct p101_env *env, str
     char root[PATH_LEN];
     char include_arg[PATH_LEN + 3U];
 
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     p101_module_map_copy_string(env, root, sizeof(root), path);
 
     p101_snprintf(env, err, include_arg, sizeof(include_arg), "-I%s", root);
@@ -100,7 +100,7 @@ static const char *p101_module_map_choose_fact_tool(const struct p101_env *env, 
 {
     const char *tool;
 
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     tool = args->fact_tool_path;
     if(tool != NULL && tool[0] != '\0')
     {
@@ -141,7 +141,7 @@ static bool p101_module_map_executable_exists(const struct p101_env *env, struct
 {
     bool ret_val;
 
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     ret_val = p101_access(env, err, path, X_OK) == 0;
     if(p101_error_has_error(err))
     {
@@ -156,7 +156,7 @@ void p101_module_map_build_fact_command(const struct p101_env *env, struct p101_
     const char *compile_db;
     const char *tool;
 
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     command[0] = '\0';
     tool       = p101_module_map_choose_fact_tool(env, err, args);
     p101_module_map_append_shell_quoted(env, err, command, command_size, tool);

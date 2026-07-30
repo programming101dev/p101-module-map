@@ -15,7 +15,7 @@ int p101_module_map_run(const struct p101_env *env, struct p101_error *err, cons
     int                       ret_val;
     bool                      has_findings;
 
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     p101_memset(env, &map, 0, sizeof(map));
     stream  = stdout;
     ret_val = EXIT_TROUBLE;

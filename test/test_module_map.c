@@ -129,10 +129,10 @@ static void test_basename_no_suffix(void)
     TEST_ASSERT_EQUAL_STRING("server", name);
 
     p101_module_map_include_to_module(env, name, sizeof(name), "p101/foo/bar.h");
-    TEST_ASSERT_EQUAL_STRING("bar", name);
+    TEST_ASSERT_EQUAL_STRING("foo/bar", name);
 
     p101_module_map_include_to_module(env, name, sizeof(name), "p101/foo/p101_widget.h");
-    TEST_ASSERT_EQUAL_STRING("widget", name);
+    TEST_ASSERT_EQUAL_STRING("foo/widget", name);
 
     p101_module_map_normalize_module_name(env, name, sizeof(name), "lib_posix/p101_mman");
     TEST_ASSERT_EQUAL_STRING("lib_posix/mman", name);
@@ -174,6 +174,7 @@ static void test_public_function_requires_used_interface(void)
     TEST_ASSERT_FALSE(p101_module_map_function_used_outside_module(env, &map, function));
 
     p101_module_map_add_include(env, error, &map, &caller, "tool.h", 3, true);
+    p101_module_map_add_call(env, error, &map, &caller, "tool_run", 4);
     TEST_ASSERT_TRUE(p101_module_map_function_used_outside_module(env, &map, function));
     TEST_ASSERT_TRUE(p101_module_map_function_has_non_static_definition(env, &map, &map.functions[1]));
 }

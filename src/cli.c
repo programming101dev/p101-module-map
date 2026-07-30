@@ -11,7 +11,7 @@
 
 void p101_module_map_arguments_init(const struct p101_env *env, struct arguments *args)
 {
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     p101_memset(env, args, 0, sizeof(*args));
     args->max_functions = DEFAULT_MAX_FUNCS;
     args->max_public    = DEFAULT_MAX_PUB;
@@ -21,7 +21,7 @@ void p101_module_map_parse_arguments(const struct p101_env *env, struct p101_err
 {
     int opt;
 
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     opterr = 0;
 
     if(argc == 2 && p101_strcmp(env, argv[1], "--help") == 0)
@@ -128,7 +128,7 @@ done:
 
 void p101_module_map_check_arguments(const struct p101_env *env, struct p101_error *err, const struct arguments *args)
 {
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
 
     if(args->output_path != NULL && args->output_path[0] == '\0')
     {

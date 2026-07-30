@@ -10,7 +10,7 @@ static struct module *p101_module_map_get_module(const struct p101_env *env, str
 {
     struct module *module;
 
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     module = NULL;
 
     for(size_t i = 0; i < map->module_count; i++)
@@ -40,7 +40,7 @@ void p101_module_map_add_source_file(const struct p101_env *env, struct p101_err
 {
     char module_name[MAX_NAME];
 
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     p101_module_map_basename_no_suffix(env, module_name, sizeof(module_name), path);
     p101_module_map_add_named_source_file(env, err, map, path, module_name, is_header);
 }
@@ -50,7 +50,7 @@ void p101_module_map_add_named_source_file(const struct p101_env *env, struct p1
     struct source_file *file;
     struct module      *module;
 
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     if(map->file_count >= MAX_FILES)
     {
         P101_ERROR_RAISE_USER(err, "Too many files for p101-module-map.", ERR_USAGE);
@@ -94,7 +94,7 @@ void p101_module_map_add_include(const struct p101_env *env, struct p101_error *
     struct include_record *include;
     struct module         *module;
 
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     if(map->include_count >= MAX_INCLUDES)
     {
         P101_ERROR_RAISE_USER(err, "Too many includes for p101-module-map.", ERR_USAGE);
@@ -133,7 +133,7 @@ void p101_module_map_add_function(const struct p101_env *env, struct p101_error 
     struct function_record *function;
     struct module          *module;
 
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     if(map->function_count >= MAX_FUNCTIONS)
     {
         P101_ERROR_RAISE_USER(err, "Too many functions for p101-module-map.", ERR_USAGE);
@@ -180,7 +180,7 @@ void p101_module_map_add_macro(const struct p101_env *env, struct p101_error *er
     struct macro_record *macro;
     struct module       *module;
 
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     if(map->macro_count >= MAX_MACROS)
     {
         P101_ERROR_RAISE_USER(err, "Too many macros for p101-module-map.", ERR_USAGE);
@@ -209,7 +209,7 @@ void p101_module_map_add_type(const struct p101_env *env, struct p101_error *err
     struct type_record *type;
     struct module      *module;
 
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     if(map->type_count >= MAX_TYPES)
     {
         P101_ERROR_RAISE_USER(err, "Too many types for p101-module-map.", ERR_USAGE);
@@ -237,11 +237,11 @@ void p101_module_map_add_call(const struct p101_env *env, struct p101_error *err
 {
     struct call_record *call;
 
-    P101_TRACE(env);
-    (void)err;
+    P101_TRACE_SCOPE(env);
     if(map->call_count >= MAX_CALLS)
     {
         map->calls_dropped++;
+        P101_ERROR_RAISE_USER(err, "Too many call facts for p101-module-map; refusing an incomplete analysis.", ERR_USAGE);
         goto done;
     }
 

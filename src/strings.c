@@ -5,7 +5,7 @@
 
 void p101_module_map_copy_string(const struct p101_env *env, char *destination, size_t destination_size, const char *source)
 {
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     if(destination_size > 0U)
     {
         p101_strncpy(env, destination, source, destination_size - 1U);
@@ -17,7 +17,7 @@ void p101_module_map_append_string(const struct p101_env *env, char *destination
 {
     size_t used;
 
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     used = p101_strlen(env, destination);
     if(used + 1U < destination_size)
     {
@@ -31,7 +31,7 @@ void p101_module_map_basename_no_suffix(const struct p101_env *env, char *destin
     const char *dot;
     size_t      len;
 
-    P101_TRACE(env);
+    P101_TRACE_SCOPE(env);
     base = p101_module_map_path_basename(env, path);
     if(p101_strncmp(env, base, "p101_", sizeof("p101_") - 1U) == 0)
     {
@@ -59,7 +59,18 @@ void p101_module_map_include_to_module(const struct p101_env *env, char *destina
     }
     else
     {
-        p101_module_map_basename_no_suffix(env, destination, destination_size, include_name);
+        char        normalized[MAX_NAME];
+        const char *module_name;
+        const char *slash;
+
+        p101_module_map_normalize_module_name(env, normalized, sizeof(normalized), include_name);
+        module_name = normalized;
+        slash       = p101_strchr(env, normalized, '/');
+        if(slash != NULL && (p101_strncmp(env, normalized, "p101_", sizeof("p101_") - 1U) == 0 || (size_t)(slash - normalized) == sizeof("p101") - 1U))
+        {
+            module_name = slash + 1;
+        }
+        p101_module_map_copy_string(env, destination, destination_size, module_name);
     }
 }
 
