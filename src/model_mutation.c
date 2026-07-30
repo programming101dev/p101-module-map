@@ -5,6 +5,104 @@
 #include <p101_c/p101_string.h>
 
 static struct module *p101_module_map_get_module(const struct p101_env *env, struct p101_error *err, struct project_map *map, const char *name);
+static void           normalize_relative_path(const struct p101_env *env, char destination[MAX_NAME], const char *path);
+static void           local_include_to_module(const struct p101_env *env, char *destination, size_t destination_size, const struct source_file *file, const char *target);
+
+static void normalize_relative_path(const struct p101_env *env, char destination[MAX_NAME], const char *path)
+{
+    const char *cursor;
+    size_t      used;
+
+    P101_TRACE_SCOPE(env);
+    destination[0] = '\0';
+    cursor         = path;
+    used           = 0U;
+
+    while(*cursor != '\0')
+    {
+        const char *component;
+        size_t      component_length;
+
+        while(*cursor == '/')
+        {
+            cursor++;
+        }
+        component = cursor;
+        while(*cursor != '\0' && *cursor != '/')
+        {
+            cursor++;
+        }
+        component_length = (size_t)(cursor - component);
+
+        if(component_length == 0U || (component_length == 1U && component[0] == '.'))
+        {
+            continue;
+        }
+
+        if(component_length == 2U && component[0] == '.' && component[1] == '.' && used > 0U)
+        {
+            size_t previous_start;
+
+            previous_start = used;
+            while(previous_start > 0U && destination[previous_start - 1U] != '/')
+            {
+                previous_start--;
+            }
+            if(used - previous_start != 2U || destination[previous_start] != '.' || destination[previous_start + 1U] != '.')
+            {
+                used              = previous_start == 0U ? 0U : previous_start - 1U;
+                destination[used] = '\0';
+                continue;
+            }
+        }
+
+        /*
+         * path is already bounded by MAX_NAME and lexical normalization can
+         * only shorten it, so every copied component fits destination.
+         */
+        if(used > 0U)
+        {
+            destination[used++] = '/';
+            destination[used]   = '\0';
+        }
+        for(size_t index = 0U; index < component_length; index++)
+        {
+            destination[used++] = component[index];
+        }
+        destination[used] = '\0';
+    }
+}
+
+static void local_include_to_module(const struct p101_env *env, char *destination, size_t destination_size, const struct source_file *file, const char *target)
+{
+    if(p101_strncmp(env, target, "./", sizeof("./") - 1U) == 0 || p101_strncmp(env, target, "../", sizeof("../") - 1U) == 0)
+    {
+        char        joined[MAX_NAME];
+        char        normalized[MAX_NAME];
+        const char *slash;
+        size_t      directory_length;
+
+        joined[0]        = '\0';
+        slash            = p101_strrchr(env, file->module, '/');
+        directory_length = slash == NULL ? 0U : (size_t)(slash - file->module);
+        for(size_t index = 0U; index < directory_length && index + 1U < sizeof(joined); index++)
+        {
+            joined[index]     = file->module[index];
+            joined[index + 1] = '\0';
+        }
+        if(directory_length > 0U)
+        {
+            p101_module_map_append_string(env, joined, sizeof(joined), "/");
+        }
+        p101_module_map_append_string(env, joined, sizeof(joined), target);
+        normalize_relative_path(env, normalized, joined);
+        p101_module_map_include_to_module(env, destination, destination_size, normalized);
+    }
+    else
+    {
+        p101_module_map_include_to_module(env, destination, destination_size, target);
+    }
+}
 
 static struct module *p101_module_map_get_module(const struct p101_env *env, struct p101_error *err, struct project_map *map, const char *name)
 {
@@ -115,7 +213,7 @@ void p101_module_map_add_include(const struct p101_env *env, struct p101_error *
 
     if(is_local)
     {
-        p101_module_map_include_to_module(env, include->target, sizeof(include->target), target);
+        local_include_to_module(env, include->target, sizeof(include->target), file, target);
         module->local_include_count++;
     }
     else

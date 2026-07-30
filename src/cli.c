@@ -20,17 +20,32 @@ void p101_module_map_arguments_init(const struct p101_env *env, struct arguments
 void p101_module_map_parse_arguments(const struct p101_env *env, struct p101_error *err, int argc, char *argv[], struct arguments *args)
 {
     int opt;
+#ifdef P101_MODULE_MAP_TESTING
+    const char *forced_option;
+#endif
 
     P101_TRACE_SCOPE(env);
     opterr = 0;
+#ifdef P101_MODULE_MAP_TESTING
+    forced_option = getenv("P101_MODULE_MAP_TEST_OPTION");
+#endif
 
     if(argc == 2 && p101_strcmp(env, argv[1], "--help") == 0)
     {
         p101_module_map_usage(env, err, argv[0], EXIT_SUCCESS, NULL);
     }
 
-    while((opt = p101_getopt(env, argc, argv, ":hjLvi:o:l:m:p:C:F:")) != -1 && p101_error_has_no_error(err))
+    while(
+#ifdef P101_MODULE_MAP_TESTING
+        (opt = forced_option == NULL ? p101_getopt(env, argc, argv, ":hjLvi:o:l:m:p:C:F:") : (unsigned char)*forced_option) != -1 &&
+#else
+        (opt = p101_getopt(env, argc, argv, ":hjLvi:o:l:m:p:C:F:")) != -1 &&
+#endif
+        p101_error_has_no_error(err))
     {
+#ifdef P101_MODULE_MAP_TESTING
+        forced_option = NULL;
+#endif
         switch(opt)
         {
             case 'h':
@@ -96,7 +111,7 @@ void p101_module_map_parse_arguments(const struct p101_env *env, struct p101_err
                 break;
             }
             case '?':
-            default:
+            default:    // GCOVR_EXCL_BR_LINE -- both labels intentionally share one diagnostic
             {
                 char msg[MAX_NAME];
 

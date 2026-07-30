@@ -14,6 +14,7 @@
 
 static struct p101_error *error;
 static struct p101_env   *env;
+void                      p101_module_map_run_more_tests(void);
 
 void setUp(void)
 {
@@ -134,6 +135,9 @@ static void test_basename_no_suffix(void)
     p101_module_map_include_to_module(env, name, sizeof(name), "p101/foo/p101_widget.h");
     TEST_ASSERT_EQUAL_STRING("foo/widget", name);
 
+    p101_module_map_include_to_module(env, name, sizeof(name), "arpa/p101_inet.h");
+    TEST_ASSERT_EQUAL_STRING("arpa/inet", name);
+
     p101_module_map_normalize_module_name(env, name, sizeof(name), "lib_posix/p101_mman");
     TEST_ASSERT_EQUAL_STRING("lib_posix/mman", name);
 }
@@ -179,6 +183,53 @@ static void test_public_function_requires_used_interface(void)
     TEST_ASSERT_TRUE(p101_module_map_function_has_non_static_definition(env, &map, &map.functions[1]));
 }
 
+static void test_explicit_relative_include_resolves_from_source_module(void)
+{
+    static struct project_map map;
+    struct source_file        source;
+
+    p101_memset(env, &map, 0, sizeof(map));
+    p101_memset(env, &source, 0, sizeof(source));
+    p101_module_map_copy_string(env, source.path, sizeof(source.path), "src/arpa/inet.c");
+    p101_module_map_copy_string(env, source.module, sizeof(source.module), "arpa/inet");
+
+    p101_module_map_add_include(env, error, &map, &source, "../p101_posix_internal.h", 17U, true);
+
+    TEST_ASSERT_FALSE(p101_error_has_error(error));
+    TEST_ASSERT_EQUAL_UINT64(1U, map.include_count);
+    TEST_ASSERT_EQUAL_STRING("posix_internal", map.includes[0].target);
+
+    p101_module_map_add_include(env, error, &map, &source, "./p101_local.h", 18U, true);
+    TEST_ASSERT_EQUAL_STRING("arpa/local", map.includes[1].target);
+
+    p101_module_map_copy_string(env, source.module, sizeof(source.module), "one/two/main");
+    p101_module_map_add_include(env, error, &map, &source, "../p101_sibling.h", 19U, true);
+    TEST_ASSERT_EQUAL_STRING("one/sibling", map.includes[2].target);
+
+    p101_module_map_copy_string(env, source.module, sizeof(source.module), "main");
+    p101_module_map_add_include(env, error, &map, &source, "./p101_local.h", 20U, true);
+    TEST_ASSERT_EQUAL_STRING("local", map.includes[3].target);
+    p101_module_map_add_include(env, error, &map, &source, "../p101_outside.h", 21U, true);
+    TEST_ASSERT_EQUAL_STRING("../outside", map.includes[4].target);
+    p101_module_map_add_include(env, error, &map, &source, "../../p101_outside.h", 22U, true);
+    TEST_ASSERT_EQUAL_STRING("../../outside", map.includes[5].target);
+    p101_module_map_add_include(env, error, &map, &source, "./", 23U, true);
+    TEST_ASSERT_EQUAL_STRING("", map.includes[6].target);
+    p101_module_map_add_include(env, error, &map, &source, "./x", 24U, true);
+    TEST_ASSERT_EQUAL_STRING("x", map.includes[7].target);
+    p101_module_map_add_include(env, error, &map, &source, "./ab", 25U, true);
+    TEST_ASSERT_EQUAL_STRING("ab", map.includes[8].target);
+    p101_module_map_add_include(env, error, &map, &source, "./.x/file.h", 26U, true);
+    TEST_ASSERT_EQUAL_STRING(".x/file", map.includes[9].target);
+
+    p101_module_map_copy_string(env, source.module, sizeof(source.module), "ab/main");
+    p101_module_map_add_include(env, error, &map, &source, "../file.h", 27U, true);
+    TEST_ASSERT_EQUAL_STRING("file", map.includes[10].target);
+    p101_module_map_copy_string(env, source.module, sizeof(source.module), ".x/main");
+    p101_module_map_add_include(env, error, &map, &source, "../file.h", 28U, true);
+    TEST_ASSERT_EQUAL_STRING("file", map.includes[11].target);
+}
+
 int main(void)
 {
     UNITY_BEGIN();
@@ -189,5 +240,7 @@ int main(void)
     RUN_TEST(test_fact_snapshot_conflicts_with_compile_database);
     RUN_TEST(test_basename_no_suffix);
     RUN_TEST(test_public_function_requires_used_interface);
+    RUN_TEST(test_explicit_relative_include_resolves_from_source_module);
+    p101_module_map_run_more_tests();
     return UNITY_END();
 }

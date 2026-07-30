@@ -16,7 +16,7 @@ if (P101_TEST_COVERAGE)
     set(_COV --coverage)
 endif ()
 
-set(P101_LIBS p101_error p101_env p101_c p101_posix p101_unix p101_convert)
+set(P101_LIBS p101_error p101_tool_event p101_env p101_c p101_c_facts p101_posix p101_unix p101_convert)
 set(P101_PUBLIC_INCLUDE_DIRS "" CACHE STRING "Extra p101 include dirs")
 set(P101_PUBLIC_LINK_DIRS "" CACHE STRING "Extra p101 link dirs")
 separate_arguments(P101_PUBLIC_INCLUDE_DIRS_LIST NATIVE_COMMAND "${P101_PUBLIC_INCLUDE_DIRS}")
@@ -50,7 +50,39 @@ function(p101_add_test name)
     add_test(NAME ${name} COMMAND ${name})
 endfunction()
 
-p101_add_test(test_module_map test_module_map.c ../src/cli.c ../src/model_mutation.c ../src/model_query.c ../src/strings.c)
+p101_add_test(test_module_map
+    test_module_map.c
+    test_more.c
+    ../src/cli.c
+    ../src/fact_command.c
+    ../src/fact_loader.c
+    ../src/model_mutation.c
+    ../src/model_notes.c
+    ../src/model_query.c
+    ../src/report.c
+    ../src/runner.c
+    ../src/strings.c
+)
+target_compile_definitions(test_module_map PRIVATE P101_MODULE_MAP_TESTING=1)
+
+add_executable(p101_module_map_coverage_cli
+    ../src/cli.c
+    ../src/fact_command.c
+    ../src/fact_loader.c
+    ../src/main.c
+    ../src/model_mutation.c
+    ../src/model_notes.c
+    ../src/model_query.c
+    ../src/report.c
+    ../src/runner.c
+    ../src/strings.c
+)
+target_include_directories(p101_module_map_coverage_cli PRIVATE ${_P101_INC_DIRS} "${CMAKE_CURRENT_SOURCE_DIR}/../include")
+target_link_libraries(p101_module_map_coverage_cli PRIVATE ${_P101_RESOLVED} m)
+target_compile_options(p101_module_map_coverage_cli PRIVATE ${_COV})
+target_link_options(p101_module_map_coverage_cli PRIVATE ${_COV})
+target_compile_definitions(p101_module_map_coverage_cli PRIVATE P101_MODULE_MAP_TESTING=1)
+add_test(NAME test_cli COMMAND bash "${CMAKE_CURRENT_SOURCE_DIR}/test_cli.sh" "$<TARGET_FILE:p101_module_map_coverage_cli>")
 
 # Example of testing a p101 wrapper this project links (no project code needed).
 p101_add_test(test_p101_string test_p101_string.c)

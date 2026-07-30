@@ -52,6 +52,7 @@ static const struct raw_call_rule RAW_CALL_RULES[] = {
 static bool        p101_module_map_is_platform_specific_include(const struct p101_env *env, const char *target);
 static bool        p101_module_map_layer_allows_include(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const char *from_module, const char *target);
 static bool        p101_module_map_module_has_source(const struct p101_env *env, const struct project_map *map, const char *module_name);
+static bool        p101_module_map_is_utility_module(const struct p101_env *env, const char *module_name);
 static const char *p101_module_map_raw_call_library(const struct p101_env *env, const char *name);
 static void        p101_module_map_write_finding(const struct p101_env *env, struct p101_error *err, FILE *stream, const struct arguments *args, bool *first_json, size_t *finding_count, const char *id, const char *path, size_t line, const char *format, ...)
     P101_ATTR_PRINTF(10, 11);
@@ -98,6 +99,15 @@ static bool p101_module_map_module_has_source(const struct p101_env *env, const 
         }
     }
     return false;
+}
+
+static bool p101_module_map_is_utility_module(const struct p101_env *env, const char *module_name)
+{
+    if(p101_strcmp(env, module_name, "util") == 0)
+    {
+        return true;
+    }
+    return p101_strcmp(env, module_name, "utils") == 0;
 }
 
 static bool p101_module_map_layer_allows_include(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const char *from_module, const char *target)
@@ -325,7 +335,7 @@ bool p101_module_map_write_findings(const struct p101_env *env, struct p101_erro
             wrote = true;
         }
 
-        if(!args->library_mode && (p101_strcmp(env, module->name, "util") == 0 || p101_strcmp(env, module->name, "utils") == 0) && module->function_count > 4U)
+        if(!args->library_mode && p101_module_map_is_utility_module(env, module->name) && module->function_count > 4U)
         {
             p101_module_map_write_finding(env, err, stream, args, &first_json, &finding_count, "P101-MOD-005", module->name, 0U, "`%s` looks like a utility dumping ground. Try naming modules after responsibilities instead.", module->name);
             wrote = true;
@@ -667,6 +677,38 @@ static void p101_module_map_write_json_string(const struct p101_env *env, struct
     }
     p101_fputc(env, err, '"', stream);
 }
+
+#ifdef P101_MODULE_MAP_TESTING
+bool p101_module_map_test_is_platform_specific_include(const struct p101_env *env, const char *target)
+{
+    return p101_module_map_is_platform_specific_include(env, target);
+}
+
+const char *p101_module_map_test_raw_call_library(const struct p101_env *env, const char *name)
+{
+    return p101_module_map_raw_call_library(env, name);
+}
+
+bool p101_module_map_test_module_has_source(const struct p101_env *env, const struct project_map *map, const char *module_name)
+{
+    return p101_module_map_module_has_source(env, map, module_name);
+}
+
+bool p101_module_map_test_layer_allows_include(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const char *from_module, const char *target)
+{
+    return p101_module_map_layer_allows_include(env, err, args, from_module, target);
+}
+
+void p101_module_map_test_write_json_string(const struct p101_env *env, struct p101_error *err, FILE *stream, const char *text)
+{
+    p101_module_map_write_json_string(env, err, stream, text);
+}
+
+void p101_module_map_test_write_finding(const struct p101_env *env, struct p101_error *err, FILE *stream, const struct arguments *args, bool *first_json, size_t *finding_count, const char *path)
+{
+    p101_module_map_write_finding(env, err, stream, args, first_json, finding_count, "P101-TEST", path, 1U, "message");
+}
+#endif
 
 void p101_module_map_write_functions_for_module(const struct p101_env *env, struct p101_error *err, FILE *stream, const struct project_map *map, const char *module_name)
 {

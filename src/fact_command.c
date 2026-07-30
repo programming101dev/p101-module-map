@@ -18,6 +18,21 @@ static void        p101_module_map_append_compile_database(const struct p101_env
 static void        p101_module_map_append_include_roots(const struct p101_env *env, struct p101_error *err, char *command, size_t command_size, const char *path);
 static const char *p101_module_map_choose_fact_tool(const struct p101_env *env, struct p101_error *err, const struct arguments *args);
 static bool        p101_module_map_executable_exists(const struct p101_env *env, struct p101_error *err, const char *path);
+#ifdef P101_MODULE_MAP_TESTING
+static int p101_module_map_test_executable_mode;
+static int p101_module_map_test_compile_db_mode = -1;
+
+void p101_module_map_test_set_fact_command_modes(int executable_mode, int compile_db_mode)
+{
+    p101_module_map_test_executable_mode = executable_mode;
+    p101_module_map_test_compile_db_mode = compile_db_mode;
+}
+
+bool p101_module_map_test_executable_exists(const struct p101_env *env, struct p101_error *err, const char *path)
+{
+    return p101_module_map_executable_exists(env, err, path);
+}
+#endif
 
 static void p101_module_map_append_checked(const struct p101_env *env, struct p101_error *err, char *command, size_t command_size, const char *text)
 {
@@ -142,11 +157,31 @@ static bool p101_module_map_executable_exists(const struct p101_env *env, struct
     bool ret_val;
 
     P101_TRACE_SCOPE(env);
+#ifdef P101_MODULE_MAP_TESTING
+    if(p101_module_map_test_executable_mode != 0)
+    {
+        if(p101_module_map_test_executable_mode == 4)    // GCOVR_EXCL_BR_LINE -- deterministic wrapper-failure test hook
+        {
+            P101_ERROR_RAISE_USER(err, "forced executable check failure", ERR_USAGE);
+            ret_val = false;
+            goto checked;
+        }
+        ret_val = (p101_module_map_test_executable_mode == 1 && p101_strcmp(env, path, "../p101-wrapper-audit/p101-wrapper-audit") == 0) ||
+                  (p101_module_map_test_executable_mode == 2 && p101_strcmp(env, path, "../../programs/p101-wrapper-audit/p101-wrapper-audit") == 0);
+        goto done;
+    }
+#endif
     ret_val = p101_access(env, err, path, X_OK) == 0;
-    if(p101_error_has_error(err))
+#ifdef P101_MODULE_MAP_TESTING
+checked:
+#endif
+    if(p101_error_has_error(err))    // GCOVR_EXCL_BR_LINE -- only an OS access failure sets this
     {
         p101_error_reset(err);
     }
+#ifdef P101_MODULE_MAP_TESTING
+done:
+#endif
     return ret_val;
 }
 
@@ -162,7 +197,14 @@ void p101_module_map_build_fact_command(const struct p101_env *env, struct p101_
     p101_module_map_append_shell_quoted(env, err, command, command_size, tool);
     p101_module_map_append_checked(env, err, command, command_size, " --emit-module-facts");
     compile_db = args->compile_db_path;
-    if(compile_db == NULL && p101_c_facts_find_clang_compile_database(env, err, ".", discovered_compile_db, sizeof(discovered_compile_db)))
+    if(compile_db == NULL &&
+#ifdef P101_MODULE_MAP_TESTING
+       ((p101_module_map_test_compile_db_mode == 1 && (p101_module_map_copy_string(env, discovered_compile_db, sizeof(discovered_compile_db), "compile_commands.json"), true)) ||
+        (p101_module_map_test_compile_db_mode < 0 && p101_c_facts_find_clang_compile_database(env, err, ".", discovered_compile_db, sizeof(discovered_compile_db))))
+#else
+       p101_c_facts_find_clang_compile_database(env, err, ".", discovered_compile_db, sizeof(discovered_compile_db))
+#endif
+    )
     {
         compile_db = discovered_compile_db;
     }

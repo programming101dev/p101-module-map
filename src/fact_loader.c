@@ -101,7 +101,7 @@ static void p101_module_map_apply_fact(const struct p101_env *env, struct p101_e
     }
 
     file = p101_module_map_file_for_fact(env, err, map, fact);
-    if(file == NULL || p101_error_has_error(err))
+    if(file == NULL)
     {
         goto done;
     }
@@ -179,6 +179,23 @@ static bool p101_module_map_fact_line_is_complete(const struct p101_env *env, st
     return complete;
 }
 
+#ifdef P101_MODULE_MAP_TESTING
+struct source_file *p101_module_map_test_file_for_fact(const struct p101_env *env, struct p101_error *err, struct project_map *map, const struct p101_c_fact *fact)
+{
+    return p101_module_map_file_for_fact(env, err, map, fact);
+}
+
+void p101_module_map_test_apply_fact(const struct p101_env *env, struct p101_error *err, struct project_map *map, const struct p101_c_fact *fact)
+{
+    p101_module_map_apply_fact(env, err, map, fact);
+}
+
+bool p101_module_map_test_fact_line_is_complete(const struct p101_env *env, struct p101_error *err, FILE *stream, char *line)
+{
+    return p101_module_map_fact_line_is_complete(env, err, stream, line);
+}
+#endif
+
 void p101_module_map_load_clang_facts(const struct p101_env *env, struct p101_error *err, struct project_map *map, const struct arguments *args)
 {
     FILE  *stream;
@@ -234,7 +251,7 @@ void p101_module_map_load_clang_facts(const struct p101_env *env, struct p101_er
         }
         if(status != P101_C_FACT_OK)
         {
-            if(p101_error_has_no_error(err))
+            if(p101_error_has_no_error(err))    // GCOVR_EXCL_BR_LINE -- parser errors already populate err
             {
                 P101_ERROR_RAISE_USER(err, "p101-wrapper-audit emitted an invalid module fact record.", ERR_USAGE);
             }
@@ -253,7 +270,7 @@ void p101_module_map_load_clang_facts(const struct p101_env *env, struct p101_er
     if(is_pipe && p101_pclose(env, err, stream) != 0)
     {
         stream = NULL;
-        if(p101_error_has_no_error(err))
+        if(p101_error_has_no_error(err))    // GCOVR_EXCL_BR_LINE -- p101_pclose raises on nonzero status
         {
             P101_ERROR_RAISE_USER(err, "p101-wrapper-audit failed while emitting module facts.", ERR_USAGE);
         }
@@ -269,7 +286,7 @@ void p101_module_map_load_clang_facts(const struct p101_env *env, struct p101_er
         }
     }
     stream = NULL;
-    if(fact_count == 0U && p101_error_has_no_error(err))
+    if(fact_count == 0U)
     {
         P101_ERROR_RAISE_USER(err, "The fact stream did not contain any p101 C facts.", ERR_USAGE);
     }

@@ -66,7 +66,7 @@ void p101_module_map_include_to_module(const struct p101_env *env, char *destina
         p101_module_map_normalize_module_name(env, normalized, sizeof(normalized), include_name);
         module_name = normalized;
         slash       = p101_strchr(env, normalized, '/');
-        if(slash != NULL && (p101_strncmp(env, normalized, "p101_", sizeof("p101_") - 1U) == 0 || (size_t)(slash - normalized) == sizeof("p101") - 1U))
+        if(slash != NULL && (p101_strncmp(env, normalized, "p101_", sizeof("p101_") - 1U) == 0 || p101_strncmp(env, normalized, "p101/", sizeof("p101/") - 1U) == 0))
         {
             module_name = slash + 1;
         }
