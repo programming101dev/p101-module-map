@@ -2,6 +2,11 @@
 
 `p101-module-map` helps students see the shape of a C project.
 
+Its policy is intentionally structural: module size and naming, header/source
+pairing, public API surface, include edges, cycles, and configured layering.
+Error/environment ownership belongs to `p101-error-contract`; direct native
+calls that bypass available wrappers belong to `p101-wrapper-audit`.
+
 It asks `p101-wrapper-audit` to parse `.c` and `.h` files with Clang, consumes
 the resulting plain TSV fact stream, groups files into modules by basename, and
 writes a Markdown report showing:

@@ -65,28 +65,14 @@ done:
 static void p101_module_map_note_call_semantics(const struct p101_env *env, struct p101_error *err, struct project_map *map, const struct source_file *file, const char *name)
 {
     P101_TRACE_SCOPE(env);
-    if(p101_strcmp(env, name, "p101_error_create") == 0)
+    if(p101_strcmp(env, name, "p101_error_create") == 0 || p101_strcmp(env, name, "p101_error_destroy") == 0)
     {
         p101_module_map_note_error_use(env, err, map, file);
-        p101_module_map_note_error_create(env, err, map, file);
-    }
-    else if(p101_strcmp(env, name, "p101_error_destroy") == 0)
-    {
-        p101_module_map_note_error_use(env, err, map, file);
-        p101_module_map_note_error_destroy(env, err, map, file);
     }
     else if(p101_strncmp(env, name, "p101_error_has_", P101_ERROR_HAS_LEN) == 0 || p101_strncmp(env, name, "p101_error_is_", P101_ERROR_IS_LEN) == 0 || p101_strcmp(env, name, "p101_error_reset") == 0)
     {
         p101_module_map_note_error_use(env, err, map, file);
         p101_module_map_note_error_check(env, err, map, file);
-    }
-    else if(p101_strcmp(env, name, "p101_env_create") == 0)
-    {
-        p101_module_map_note_env_create(env, err, map, file);
-    }
-    else if(p101_strcmp(env, name, "p101_env_destroy") == 0)
-    {
-        p101_module_map_note_env_destroy(env, err, map, file);
     }
 }
 

@@ -12,82 +12,12 @@ enum
     ASCII_CONTROL_LIMIT = 32
 };
 
-struct raw_call_rule
-{
-    const char *name;
-    const char *library;
-};
-
-static const struct raw_call_rule RAW_CALL_RULES[] = {
-    {"calloc",   "lib_c"    },
-    {"closedir", "lib_posix"},
-    {"close",    "lib_posix"},
-    {"fclose",   "lib_c"    },
-    {"fdopen",   "lib_posix"},
-    {"fflush",   "lib_c"    },
-    {"fgetc",    "lib_c"    },
-    {"fgets",    "lib_c"    },
-    {"fopen",    "lib_c"    },
-    {"fprintf",  "lib_c"    },
-    {"fputc",    "lib_c"    },
-    {"fputs",    "lib_c"    },
-    {"free",     "lib_c"    },
-    {"malloc",   "lib_c"    },
-    {"memcpy",   "lib_c"    },
-    {"memset",   "lib_c"    },
-    {"open",     "lib_posix"},
-    {"opendir",  "lib_posix"},
-    {"printf",   "lib_c"    },
-    {"read",     "lib_posix"},
-    {"realloc",  "lib_c"    },
-    {"snprintf", "lib_c"    },
-    {"strcmp",   "lib_c"    },
-    {"strcpy",   "lib_c"    },
-    {"strlen",   "lib_c"    },
-    {"strncmp",  "lib_c"    },
-    {"strncpy",  "lib_c"    },
-    {"write",    "lib_posix"},
-};
-
-static bool        p101_module_map_is_platform_specific_include(const struct p101_env *env, const char *target);
-static bool        p101_module_map_layer_allows_include(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const char *from_module, const char *target);
-static bool        p101_module_map_module_has_source(const struct p101_env *env, const struct project_map *map, const char *module_name);
-static bool        p101_module_map_is_utility_module(const struct p101_env *env, const char *module_name);
-static const char *p101_module_map_raw_call_library(const struct p101_env *env, const char *name);
-static void        p101_module_map_write_finding(const struct p101_env *env, struct p101_error *err, FILE *stream, const struct arguments *args, bool *first_json, size_t *finding_count, const char *id, const char *path, size_t line, const char *format, ...)
+static bool p101_module_map_layer_allows_include(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const char *from_module, const char *target);
+static bool p101_module_map_module_has_source(const struct p101_env *env, const struct project_map *map, const char *module_name);
+static bool p101_module_map_is_utility_module(const struct p101_env *env, const char *module_name);
+static void p101_module_map_write_finding(const struct p101_env *env, struct p101_error *err, FILE *stream, const struct arguments *args, bool *first_json, size_t *finding_count, const char *id, const char *path, size_t line, const char *format, ...)
     P101_ATTR_PRINTF(10, 11);
 static void p101_module_map_write_json_string(const struct p101_env *env, struct p101_error *err, FILE *stream, const char *text);
-
-static bool p101_module_map_is_platform_specific_include(const struct p101_env *env, const char *target)
-{
-    bool ret_val;
-
-    ret_val = false;
-    if(p101_strncmp(env, target, "linux/", sizeof("linux/") - 1U) == 0 || p101_strncmp(env, target, "mach/", sizeof("mach/") - 1U) == 0 || p101_strncmp(env, target, "windows", sizeof("windows") - 1U) == 0 || p101_strcmp(env, target, "sys/event.h") == 0 ||
-       p101_strcmp(env, target, "sys/kqueue.h") == 0 || p101_strcmp(env, target, "sys/sysctl.h") == 0)
-    {
-        ret_val = true;
-    }
-
-    return ret_val;
-}
-
-static const char *p101_module_map_raw_call_library(const struct p101_env *env, const char *name)
-{
-    const char *library;
-
-    library = NULL;
-    for(size_t i = 0; i < sizeof(RAW_CALL_RULES) / sizeof(RAW_CALL_RULES[0]); i++)
-    {
-        if(p101_strcmp(env, RAW_CALL_RULES[i].name, name) == 0)
-        {
-            library = RAW_CALL_RULES[i].library;
-            break;
-        }
-    }
-
-    return library;
-}
 
 static bool p101_module_map_module_has_source(const struct p101_env *env, const struct project_map *map, const char *module_name)
 {
@@ -194,7 +124,7 @@ bool p101_module_map_write_report(const struct p101_env *env, struct p101_error 
     p101_fputs(env, err, "> Parser note: this report consumes Clang AST facts from `p101-wrapper-audit`; the module design checks are still teaching heuristics, not proof obligations.\n\n", stream);
     if(args->library_mode)
     {
-        p101_fputs(env, err, "> Library mode: public API use and raw wrapper-boundary calls require external consumers, so this report omits those closed-world checks.\n\n", stream);
+        p101_fputs(env, err, "> Library mode: public API use requires external consumers, so this report omits closed-world unused-public-symbol checks.\n\n", stream);
     }
     p101_fprintf(env, err, stream, "Files scanned: `%zu`\n\n", map->file_count);
     p101_fprintf(env, err, stream, "Modules found: `%zu`\n\n", map->module_count);
@@ -502,86 +432,6 @@ bool p101_module_map_write_findings(const struct p101_env *env, struct p101_erro
                                           include->target);
             wrote = true;
         }
-
-        if(!args->library_mode && !include->is_local && p101_module_map_is_platform_specific_include(env, include->target))
-        {
-            p101_module_map_write_finding(env,
-                                          err,
-                                          stream,
-                                          args,
-                                          &first_json,
-                                          &finding_count,
-                                          "P101-MOD-014",
-                                          include->path,
-                                          include->line,
-                                          "This file includes platform-specific header `<%s>`. Put that behind a p101 wrapper or a clearly named portability boundary.",
-                                          include->target);
-            wrote = true;
-        }
-    }
-
-    for(size_t i = 0; i < map->module_count; i++)
-    {
-        const struct module *module;
-
-        module = &map->modules[i];
-        if(module->creates_error_object && !module->destroys_error_object)
-        {
-            p101_module_map_write_finding(env,
-                                          err,
-                                          stream,
-                                          args,
-                                          &first_json,
-                                          &finding_count,
-                                          "P101-MOD-015",
-                                          module->name,
-                                          0U,
-                                          "`%s` creates a `p101_error`, but no matching `p101_error_destroy` was detected in that module. Keep ownership local unless the API explicitly transfers it.",
-                                          module->name);
-            wrote = true;
-        }
-
-        if(module->creates_env_object && !module->destroys_env_object)
-        {
-            p101_module_map_write_finding(env,
-                                          err,
-                                          stream,
-                                          args,
-                                          &first_json,
-                                          &finding_count,
-                                          "P101-MOD-016",
-                                          module->name,
-                                          0U,
-                                          "`%s` creates a `p101_env`, but no matching `p101_env_destroy` was detected in that module. The module that creates an environment should normally destroy it.",
-                                          module->name);
-            wrote = true;
-        }
-    }
-
-    for(size_t i = 0; !args->library_mode && i < map->call_count; i++)
-    {
-        const struct call_record *call;
-        const char               *library;
-
-        call    = &map->calls[i];
-        library = p101_module_map_raw_call_library(env, call->name);
-        if(library != NULL)
-        {
-            p101_module_map_write_finding(env,
-                                          err,
-                                          stream,
-                                          args,
-                                          &first_json,
-                                          &finding_count,
-                                          "P101-MOD-017",
-                                          call->path,
-                                          call->line,
-                                          "`%s` calls raw `%s`. Prefer the p101 wrapper from `%s`, or add a wrapper if this is an intentional portability boundary.",
-                                          call->module,
-                                          call->name,
-                                          library);
-            wrote = true;
-        }
     }
 
     if(args->json)
@@ -679,16 +529,6 @@ static void p101_module_map_write_json_string(const struct p101_env *env, struct
 }
 
 #ifdef P101_MODULE_MAP_TESTING
-bool p101_module_map_test_is_platform_specific_include(const struct p101_env *env, const char *target)
-{
-    return p101_module_map_is_platform_specific_include(env, target);
-}
-
-const char *p101_module_map_test_raw_call_library(const struct p101_env *env, const char *name)
-{
-    return p101_module_map_raw_call_library(env, name);
-}
-
 bool p101_module_map_test_module_has_source(const struct p101_env *env, const struct project_map *map, const char *module_name)
 {
     return p101_module_map_module_has_source(env, map, module_name);

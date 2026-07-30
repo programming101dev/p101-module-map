@@ -24,8 +24,6 @@ static struct p101_env   *more_env;
 struct source_file       *p101_module_map_test_file_for_fact(const struct p101_env *env, struct p101_error *err, struct project_map *map, const struct p101_c_fact *fact);
 void                      p101_module_map_test_apply_fact(const struct p101_env *env, struct p101_error *err, struct project_map *map, const struct p101_c_fact *fact);
 bool                      p101_module_map_test_fact_line_is_complete(const struct p101_env *env, struct p101_error *err, FILE *stream, char *line);
-bool                      p101_module_map_test_is_platform_specific_include(const struct p101_env *env, const char *target);
-const char               *p101_module_map_test_raw_call_library(const struct p101_env *env, const char *name);
 bool                      p101_module_map_test_module_has_source(const struct p101_env *env, const struct project_map *map, const char *module_name);
 bool                      p101_module_map_test_layer_allows_include(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const char *from_module, const char *target);
 void                      p101_module_map_test_write_json_string(const struct p101_env *env, struct p101_error *err, FILE *stream, const char *text);
@@ -151,12 +149,8 @@ static void test_notes_and_limits(void)
     p101_module_map_copy_string(more_env, file.module, sizeof(file.module), "x");
     p101_module_map_note_error_use(more_env, more_error, &map, &file);
     p101_module_map_note_error_check(more_env, more_error, &map, &file);
-    p101_module_map_note_error_create(more_env, more_error, &map, &file);
-    p101_module_map_note_error_destroy(more_env, more_error, &map, &file);
-    p101_module_map_note_env_create(more_env, more_error, &map, &file);
-    p101_module_map_note_env_destroy(more_env, more_error, &map, &file);
     TEST_ASSERT_TRUE(map.modules[0].uses_error_object);
-    TEST_ASSERT_TRUE(map.modules[0].destroys_env_object);
+    TEST_ASSERT_TRUE(map.modules[0].checks_error_object);
 
     map.module_count = MAX_MODULES;
     p101_module_map_copy_string(more_env, file.module, sizeof(file.module), "new");
@@ -165,15 +159,6 @@ static void test_notes_and_limits(void)
     reset_error();
     p101_module_map_note_error_check(more_env, more_error, &map, &file);
     reset_error();
-    p101_module_map_note_error_create(more_env, more_error, &map, &file);
-    reset_error();
-    p101_module_map_note_error_destroy(more_env, more_error, &map, &file);
-    reset_error();
-    p101_module_map_note_env_create(more_env, more_error, &map, &file);
-    reset_error();
-    p101_module_map_note_env_destroy(more_env, more_error, &map, &file);
-    reset_error();
-
     p101_memset(more_env, &map, 0, sizeof(map));
     map.file_count = MAX_FILES;
     p101_module_map_add_named_source_file(more_env, more_error, &map, "x.c", "x", false);
@@ -504,7 +489,6 @@ static void test_report_finding_predicates(void)
 
 static void test_report_helper_edges(void)
 {
-    static const char        *platform_headers[] = {"linux/x.h", "mach/x.h", "windows.h", "sys/event.h", "sys/kqueue.h", "sys/sysctl.h"};
     static struct project_map map;
     struct arguments          args;
     char                      path[] = "/tmp/p101-module-map-layers-XXXXXX";
@@ -512,14 +496,6 @@ static void test_report_helper_edges(void)
     int                       fd;
     bool                      first_json;
     size_t                    finding_count;
-
-    for(size_t index = 0U; index < sizeof(platform_headers) / sizeof(platform_headers[0]); index++)
-    {
-        TEST_ASSERT_TRUE(p101_module_map_test_is_platform_specific_include(more_env, platform_headers[index]));
-    }
-    TEST_ASSERT_FALSE(p101_module_map_test_is_platform_specific_include(more_env, "stdio.h"));
-    TEST_ASSERT_EQUAL_STRING("lib_c", p101_module_map_test_raw_call_library(more_env, "malloc"));
-    TEST_ASSERT_NULL(p101_module_map_test_raw_call_library(more_env, "p101_malloc"));
 
     p101_memset(more_env, &map, 0, sizeof(map));
     p101_module_map_copy_string(more_env, map.modules[0].name, sizeof(map.modules[0].name), "empty");

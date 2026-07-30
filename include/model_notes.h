@@ -7,9 +7,5 @@
 
 void p101_module_map_note_error_use(const struct p101_env *env, struct p101_error *err, struct project_map *map, const struct source_file *file);
 void p101_module_map_note_error_check(const struct p101_env *env, struct p101_error *err, struct project_map *map, const struct source_file *file);
-void p101_module_map_note_error_create(const struct p101_env *env, struct p101_error *err, struct project_map *map, const struct source_file *file);
-void p101_module_map_note_error_destroy(const struct p101_env *env, struct p101_error *err, struct project_map *map, const struct source_file *file);
-void p101_module_map_note_env_create(const struct p101_env *env, struct p101_error *err, struct project_map *map, const struct source_file *file);
-void p101_module_map_note_env_destroy(const struct p101_env *env, struct p101_error *err, struct project_map *map, const struct source_file *file);
 
 #endif    // P101_MODULE_MAP_MODEL_NOTES_H

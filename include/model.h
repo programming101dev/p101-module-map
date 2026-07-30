@@ -32,10 +32,6 @@ struct module
     size_t external_include_count;
     bool   uses_error_object;
     bool   checks_error_object;
-    bool   creates_error_object;
-    bool   destroys_error_object;
-    bool   creates_env_object;
-    bool   destroys_env_object;
 };
 
 struct function_record
