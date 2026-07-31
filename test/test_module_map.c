@@ -8,9 +8,9 @@
 #include <p101_c/p101_string.h>
 #include <p101_env/env.h>
 #include <p101_error/error.h>
-#include <p101_posix/p101_unistd.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 static struct p101_error *error;
 static struct p101_env   *env;
@@ -138,8 +138,8 @@ static void test_basename_no_suffix(void)
     p101_module_map_include_to_module(env, name, sizeof(name), "arpa/p101_inet.h");
     TEST_ASSERT_EQUAL_STRING("arpa/inet", name);
 
-    p101_module_map_normalize_module_name(env, name, sizeof(name), "lib_posix/p101_mman");
-    TEST_ASSERT_EQUAL_STRING("lib_posix/mman", name);
+    p101_module_map_normalize_module_name(env, name, sizeof(name), "lib_memory/memory");
+    TEST_ASSERT_EQUAL_STRING("lib_memory/memory", name);
 }
 
 static void test_public_function_requires_used_interface(void)

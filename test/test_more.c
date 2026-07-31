@@ -15,9 +15,10 @@
 #include <p101_c_facts/facts.h>
 #include <p101_env/env.h>
 #include <p101_error/error.h>
-#include <p101_posix/p101_stdio.h>
-#include <p101_posix/p101_stdlib.h>
-#include <p101_posix/p101_unistd.h>
+#include <p101_filesystem/filesystem.h>
+#include <p101_io/io.h>
+#include <p101_process/process.h>
+#include <unistd.h>
 
 static struct p101_error *more_error;
 static struct p101_env   *more_env;
@@ -458,15 +459,17 @@ static void test_report_finding_predicates(void)
     map.modules[1].function_count = 5U;
     p101_module_map_copy_string(more_env, map.modules[2].name, sizeof(map.modules[2].name), "util");
     map.modules[2].function_count = 4U;
-    map.module_count              = 3U;
+    p101_module_map_copy_string(more_env, map.modules[3].name, sizeof(map.modules[3].name), "a");
+    map.modules[3].source_count = 1U;
+    map.module_count            = 4U;
 
-    set_function(&map.functions[0], "a", "candidate", false, false);
+    set_function(&map.functions[0], "a", "main", false, false);
     set_function(&map.functions[1], "a", "header_only", false, true);
     set_function(&map.functions[2], "a", "static_definition", true, false);
     set_function(&map.functions[3], "a", "declared", false, false);
     set_function(&map.functions[4], "a", "declared", false, true);
-    set_function(&map.functions[5], "a", "externally_used", false, false);
-    set_function(&map.functions[6], "main", "main", false, false);
+    set_function(&map.functions[5], "a", "candidate", false, false);
+    set_function(&map.functions[6], "a", "externally_used", false, false);
     set_function(&map.functions[7], "main", "main_header", false, true);
     map.function_count = 8U;
 

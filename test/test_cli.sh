@@ -93,6 +93,23 @@ expect 2 -m nope -i "$work/facts.tsv"
 expect 2 -p nope -i "$work/facts.tsv"
 expect 2 -i "$work/facts.tsv" -C compile_commands.json
 expect 1 -i "$work/facts.tsv" -l "$work/layers.txt" -m 1 -p 1 src include
+for diagnostic_id in \
+  P101-MOD-001 \
+  P101-MOD-002 \
+  P101-MOD-003 \
+  P101-MOD-004 \
+  P101-MOD-005 \
+  P101-MOD-006 \
+  P101-MOD-007 \
+  P101-MOD-008 \
+  P101-MOD-009 \
+  P101-MOD-010 \
+  P101-MOD-011 \
+  P101-MOD-012 \
+  P101-MOD-013
+do
+  grep -q "$diagnostic_id" "$work/stdout"
+done
 expect 1 -j -L -v -i "$work/facts.tsv" -l "$work/layers.txt" -m 1 -p 1 -o "$work/report.json"
 test -s "$work/report.json"
 expect 1 -L -i "$work/facts.tsv"
