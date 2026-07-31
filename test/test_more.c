@@ -126,7 +126,7 @@ static void test_queries_edges(void)
     TEST_ASSERT_FALSE(p101_module_map_function_has_header_declaration(more_env, &map, &function));
     p101_module_map_copy_string(more_env, map.functions[0].name, sizeof(map.functions[0].name), function.name);
     p101_module_map_copy_string(more_env, map.functions[0].module, sizeof(map.functions[0].module), "other");
-    TEST_ASSERT_FALSE(p101_module_map_function_has_header_declaration(more_env, &map, &function));
+    TEST_ASSERT_TRUE(p101_module_map_function_has_header_declaration(more_env, &map, &function));
     map.functions[0].is_header_declaration = false;
     map.functions[0].is_static             = true;
     map.functions[2].is_static             = true;
@@ -135,7 +135,7 @@ static void test_queries_edges(void)
     TEST_ASSERT_FALSE(p101_module_map_function_has_non_static_definition(more_env, &map, &function));
     p101_module_map_copy_string(more_env, map.functions[1].name, sizeof(map.functions[1].name), function.name);
     p101_module_map_copy_string(more_env, map.functions[1].module, sizeof(map.functions[1].module), "other");
-    TEST_ASSERT_FALSE(p101_module_map_function_has_non_static_definition(more_env, &map, &function));
+    TEST_ASSERT_TRUE(p101_module_map_function_has_non_static_definition(more_env, &map, &function));
 }
 
 static void test_notes_and_limits(void)

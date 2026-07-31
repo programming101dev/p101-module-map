@@ -14,6 +14,7 @@ enum
 
 static bool p101_module_map_layer_allows_include(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const char *from_module, const char *target);
 static bool p101_module_map_module_has_source(const struct p101_env *env, const struct project_map *map, const char *module_name);
+static bool p101_module_map_module_has_unmatched_public_definition(const struct p101_env *env, const struct project_map *map, const char *module_name);
 static bool p101_module_map_is_utility_module(const struct p101_env *env, const char *module_name);
 static void p101_module_map_write_finding(const struct p101_env *env, struct p101_error *err, FILE *stream, const struct arguments *args, bool *first_json, size_t *finding_count, const char *id, const char *path, size_t line, const char *format, ...)
     P101_ATTR_PRINTF(10, 11);
@@ -26,6 +27,21 @@ static bool p101_module_map_module_has_source(const struct p101_env *env, const 
         if(p101_strcmp(env, map->modules[i].name, module_name) == 0)
         {
             return map->modules[i].source_count > 0U;
+        }
+    }
+    return false;
+}
+
+static bool p101_module_map_module_has_unmatched_public_definition(const struct p101_env *env, const struct project_map *map, const char *module_name)
+{
+    for(size_t i = 0U; i < map->function_count; i++)
+    {
+        const struct function_record *function;
+
+        function = &map->functions[i];
+        if(!function->is_header_declaration && !function->is_static && p101_strcmp(env, function->module, module_name) == 0 && p101_strcmp(env, function->name, "main") != 0 && !p101_module_map_function_has_header_declaration(env, map, function))
+        {
+            return true;
         }
     }
     return false;
@@ -220,9 +236,19 @@ bool p101_module_map_write_findings(const struct p101_env *env, struct p101_erro
         const struct module *module;
 
         module = &map->modules[i];
-        if(module->source_count > 0U && module->header_count == 0U && p101_strcmp(env, module->name, "main") != 0)
+        if(module->source_count > 0U && module->header_count == 0U && p101_strcmp(env, module->name, "main") != 0 && p101_module_map_module_has_unmatched_public_definition(env, map, module->name))
         {
-            p101_module_map_write_finding(env, err, stream, args, &first_json, &finding_count, "P101-MOD-001", module->name, 0U, "`%s` has source code but no matching header. If other modules should use it, create a small public interface.", module->name);
+            p101_module_map_write_finding(env,
+                                          err,
+                                          stream,
+                                          args,
+                                          &first_json,
+                                          &finding_count,
+                                          "P101-MOD-001",
+                                          module->name,
+                                          0U,
+                                          "`%s` exposes a function without any scanned header declaration. Add the function to the appropriate interface or make it `static`.",
+                                          module->name);
             wrote = true;
         }
 

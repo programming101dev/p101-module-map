@@ -87,7 +87,7 @@ expect 2
 expect 2 -Z
 expect 2 -i
 P101_MODULE_MAP_TEST_OPTION=: expect 2
-P101_MODULE_MAP_TEST_OPTION=? expect 2
+P101_MODULE_MAP_TEST_OPTION='?' expect 2
 P101_MODULE_MAP_TEST_OPTION=@ expect 2
 expect 2 -m nope -i "$work/facts.tsv"
 expect 2 -p nope -i "$work/facts.tsv"

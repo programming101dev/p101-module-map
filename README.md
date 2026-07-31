@@ -61,6 +61,11 @@ module with no active source translation unit are also excluded; this supports
 source-controlled, non-installed platform placeholders. Installed-header/link
 validation remains the build system's responsibility.
 
+Function declarations and definitions are paired by C symbol across the
+scanned project, not by matching filenames. This admits intentional split
+implementations and umbrella headers. A source-only basename is reported only
+when it exposes a non-static function with no scanned header declaration.
+
 The tool automatically uses the current project's Clang compilation database
 from `.last-build-dir` or `build-clang/compile_commands.json`. This preserves
 sibling-library include roots, feature-test macros, and other project flags.

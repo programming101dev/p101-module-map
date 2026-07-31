@@ -98,7 +98,12 @@ bool p101_module_map_function_has_header_declaration(const struct p101_env *env,
     ret_val = false;
     for(size_t i = 0; i < map->function_count; i++)
     {
-        if(map->functions[i].is_header_declaration && p101_strcmp(env, map->functions[i].name, function->name) == 0 && p101_strcmp(env, map->functions[i].module, function->module) == 0)
+        /*
+         * A public declaration may intentionally live in an umbrella header
+         * or a narrower interface whose basename differs from the
+         * implementation file. C linkage is by symbol, not by filename.
+         */
+        if(map->functions[i].is_header_declaration && p101_strcmp(env, map->functions[i].name, function->name) == 0)
         {
             ret_val = true;
             break;
@@ -115,7 +120,7 @@ bool p101_module_map_function_has_non_static_definition(const struct p101_env *e
     ret_val = false;
     for(size_t i = 0; i < map->function_count; i++)
     {
-        if(!map->functions[i].is_header_declaration && !map->functions[i].is_static && p101_strcmp(env, map->functions[i].name, function->name) == 0 && p101_strcmp(env, map->functions[i].module, function->module) == 0)
+        if(!map->functions[i].is_header_declaration && !map->functions[i].is_static && p101_strcmp(env, map->functions[i].name, function->name) == 0)
         {
             ret_val = true;
             break;
