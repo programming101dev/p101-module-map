@@ -1,0 +1,2 @@
+src/report.c:p101_module_map_write_finding:va_start
+src/report.c:p101_module_map_write_finding:va_end
