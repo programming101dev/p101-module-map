@@ -62,12 +62,12 @@ static const char *choose_fact_tool(const struct p101_env *env, struct p101_erro
         return tool;
     }
 
-    tool = p101_getenv(env, "P101_MODULE_MAP_FACT_TOOL");
+    tool = p101_getenv(env, err, "P101_MODULE_MAP_FACT_TOOL");
     if(tool != NULL && tool[0] != '\0')
     {
         return tool;
     }
-    tool = p101_getenv(env, "P101_WRAPPER_AUDIT");
+    tool = p101_getenv(env, err, "P101_WRAPPER_AUDIT");
     if(tool != NULL && tool[0] != '\0')
     {
         return tool;
