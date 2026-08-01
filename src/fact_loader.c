@@ -299,7 +299,7 @@ done:
     {
         if(pipe_open)
         {
-            (void)p101_tool_read_pipe_close(env, NULL, &pipe_state);
+            (void)p101_tool_read_pipe_close(env, NULL, &pipe_state);    // P101_ERROR_CONTRACT_ALLOW_NO_ERROR: cleanup preserves the primary error.
         }
         else
         {
