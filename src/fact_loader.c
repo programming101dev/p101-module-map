@@ -8,9 +8,10 @@
 #include <p101_c/p101_stdio.h>
 #include <p101_c/p101_string.h>
 #include <p101_c_facts/facts.h>
-#include <p101_process/process.h>
+#include <p101_util/tool_run.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <sys/wait.h>
 
 static struct source_file *p101_module_map_find_fact_file(const struct p101_env *env, struct project_map *map, const char *path);
 static struct source_file *p101_module_map_file_for_fact(const struct p101_env *env, struct p101_error *err, struct project_map *map, const struct p101_c_fact *fact);
@@ -184,32 +185,41 @@ bool p101_module_map_test_fact_line_is_complete(const struct p101_env *env, stru
 
 void p101_module_map_load_clang_facts(const struct p101_env *env, struct p101_error *err, struct project_map *map, const struct arguments *args)
 {
-    FILE  *stream;
-    char   command[MAX_COMMAND];
-    char   line[MAX_LINE];
-    bool   is_pipe;
-    size_t fact_count;
+    FILE                      *stream;
+    char                       line[MAX_LINE];
+    bool                       is_pipe;
+    bool                       pipe_open;
+    size_t                     fact_count;
+    struct p101_tool_argv      command;
+    struct p101_tool_read_pipe pipe_state = {NULL, -1};
 
     P101_TRACE_SCOPE(env);
     stream     = NULL;
     is_pipe    = args->facts_path == NULL;
+    pipe_open  = false;
     fact_count = 0U;
     if(is_pipe)
     {
-        p101_module_map_build_fact_command(env, err, command, sizeof(command), args);
+        p101_module_map_build_fact_argv(env, err, &command, args);
         if(p101_error_has_error(err))
         {
             goto done;
         }
         if(args->verbose)
         {
-            p101_fprintf(env, err, stderr, "p101-module-map: fact command: %s\n", command);
+            p101_fputs(env, err, "p101-module-map: fact argv:", stderr);
+            for(size_t index = 0U; index < command.count && p101_error_has_no_error(err); index++)
+            {
+                p101_fprintf(env, err, stderr, " [%s]", command.values[index]);
+            }
+            p101_fputc(env, err, '\n', stderr);
             if(p101_error_has_error(err))
             {
                 goto done;
             }
         }
-        stream = p101_popen(env, err, command, "r");
+        pipe_open = p101_tool_read_pipe_open(env, err, command.values, "p101-module-map fact producer", true, &pipe_state);
+        stream    = pipe_state.stream;
     }
     else
     {
@@ -253,16 +263,23 @@ void p101_module_map_load_clang_facts(const struct p101_env *env, struct p101_er
         goto done;
     }
 
-    if(is_pipe && p101_pclose(env, err, stream) != 0)
+    if(is_pipe)
     {
-        stream = NULL;
-        if(p101_error_has_no_error(err))    // GCOVR_EXCL_BR_LINE -- p101_pclose raises on nonzero status
+        int status;
+
+        status    = p101_tool_read_pipe_close(env, err, &pipe_state);
+        stream    = NULL;
+        pipe_open = false;
+        if(p101_error_has_no_error(err) && (!WIFEXITED(status) || WEXITSTATUS(status) != 0))
         {
             P101_ERROR_RAISE_USER(err, "p101-wrapper-audit failed while emitting module facts.", ERR_USAGE);
         }
-        goto done;
+        if(p101_error_has_error(err))
+        {
+            goto done;
+        }
     }
-    if(!is_pipe)
+    else
     {
         p101_fclose(env, err, stream);
         if(p101_error_has_error(err))
@@ -280,13 +297,17 @@ void p101_module_map_load_clang_facts(const struct p101_env *env, struct p101_er
 done:
     if(stream != NULL)
     {
-        if(is_pipe)
+        if(pipe_open)
         {
-            (void)p101_pclose(env, err, stream);
+            (void)p101_tool_read_pipe_close(env, NULL, &pipe_state);
         }
         else
         {
             p101_fclose(env, err, stream);
         }
+    }
+    if(is_pipe)
+    {
+        p101_tool_argv_destroy(env, &command);
     }
 }

@@ -203,10 +203,9 @@ static void test_notes_and_limits(void)
 
 static void test_argument_and_fact_command_edges(void)
 {
-    struct arguments args;
-    char             command[MAX_COMMAND];
-    char             tiny[2];
-    char            *many[P101_MODULE_MAP_MAX_PATHS + 3U];
+    struct arguments      args;
+    struct p101_tool_argv command;
+    char                 *many[P101_MODULE_MAP_MAX_PATHS + 3U];
 
     p101_memset(more_env, &args, 0, sizeof(args));
     p101_module_map_arguments_init(more_env, &args);
@@ -264,27 +263,33 @@ static void test_argument_and_fact_command_edges(void)
     args.compile_db_path = "compile db.json";
     args.paths[0]        = "src path";
     args.path_count      = 1U;
-    p101_module_map_build_fact_command(more_env, more_error, command, sizeof(command), &args);
-    TEST_ASSERT_NOT_NULL(p101_strstr(more_env, command, "'\\''"));
-    p101_module_map_build_fact_command(more_env, more_error, tiny, sizeof(tiny), &args);
-    TEST_ASSERT_TRUE(p101_error_has_error(more_error));
-    reset_error();
+    p101_module_map_build_fact_argv(more_env, more_error, &command, &args);
+    TEST_ASSERT_EQUAL_STRING("tool'quoted", command.values[0]);
+    TEST_ASSERT_EQUAL_STRING("--compile-db", command.values[2]);
+    TEST_ASSERT_EQUAL_STRING("compile db.json", command.values[3]);
+    TEST_ASSERT_EQUAL_STRING("src path", command.values[command.count - 1U]);
+    p101_tool_argv_destroy(more_env, &command);
 
     p101_memset(more_env, &args, 0, sizeof(args));
     p101_setenv(more_env, more_error, "P101_MODULE_MAP_FACT_TOOL", "/bin/echo", 1);
-    p101_module_map_build_fact_command(more_env, more_error, command, sizeof(command), &args);
+    p101_module_map_build_fact_argv(more_env, more_error, &command, &args);
     p101_unsetenv(more_env, more_error, "P101_MODULE_MAP_FACT_TOOL");
-    TEST_ASSERT_NOT_NULL(p101_strstr(more_env, command, "/bin/echo"));
+    TEST_ASSERT_EQUAL_STRING("/bin/echo", command.values[0]);
+    p101_tool_argv_destroy(more_env, &command);
     p101_module_map_test_set_fact_command_modes(1, 0);
-    p101_module_map_build_fact_command(more_env, more_error, command, sizeof(command), &args);
+    p101_module_map_build_fact_argv(more_env, more_error, &command, &args);
+    p101_tool_argv_destroy(more_env, &command);
     p101_module_map_test_set_fact_command_modes(2, 1);
-    p101_module_map_build_fact_command(more_env, more_error, command, sizeof(command), &args);
+    p101_module_map_build_fact_argv(more_env, more_error, &command, &args);
+    p101_tool_argv_destroy(more_env, &command);
     p101_module_map_test_set_fact_command_modes(3, 0);
-    p101_module_map_build_fact_command(more_env, more_error, command, sizeof(command), &args);
+    p101_module_map_build_fact_argv(more_env, more_error, &command, &args);
+    p101_tool_argv_destroy(more_env, &command);
     p101_module_map_test_set_fact_command_modes(1, 0);
     TEST_ASSERT_FALSE(p101_module_map_test_executable_exists(more_env, more_error, "not-the-first-tool"));
     p101_module_map_test_set_fact_command_modes(0, -1);
-    p101_module_map_build_fact_command(more_env, more_error, command, sizeof(command), &args);
+    p101_module_map_build_fact_argv(more_env, more_error, &command, &args);
+    p101_tool_argv_destroy(more_env, &command);
     TEST_ASSERT_FALSE(p101_module_map_test_executable_exists(more_env, more_error, "/missing/p101-tool"));
     p101_module_map_test_set_fact_command_modes(4, -1);
     TEST_ASSERT_FALSE(p101_module_map_test_executable_exists(more_env, more_error, "/bin/sh"));
@@ -294,11 +299,13 @@ static void test_argument_and_fact_command_edges(void)
     args.fact_tool_path = "";
     p101_setenv(more_env, more_error, "P101_MODULE_MAP_FACT_TOOL", "", 1);
     p101_setenv(more_env, more_error, "P101_WRAPPER_AUDIT", "/bin/echo", 1);
-    p101_module_map_build_fact_command(more_env, more_error, command, sizeof(command), &args);
+    p101_module_map_build_fact_argv(more_env, more_error, &command, &args);
+    p101_tool_argv_destroy(more_env, &command);
     p101_unsetenv(more_env, more_error, "P101_MODULE_MAP_FACT_TOOL");
     p101_unsetenv(more_env, more_error, "P101_WRAPPER_AUDIT");
     p101_setenv(more_env, more_error, "P101_WRAPPER_AUDIT", "", 1);
-    p101_module_map_build_fact_command(more_env, more_error, command, sizeof(command), &args);
+    p101_module_map_build_fact_argv(more_env, more_error, &command, &args);
+    p101_tool_argv_destroy(more_env, &command);
     p101_unsetenv(more_env, more_error, "P101_WRAPPER_AUDIT");
 }
 

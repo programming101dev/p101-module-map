@@ -69,5 +69,6 @@ set(main_LINK_LIBRARIES
         p101_io
         p101_process
         p101_convert
+        p101_util
         m
 )
