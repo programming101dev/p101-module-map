@@ -1,0 +1,4 @@
+# Variadic argument handling is a C language boundary. va_start and va_end are
+# macros, not library calls with p101 wrapper equivalents.
+src/report.c:p101_module_map_write_finding:va_end
+src/report.c:p101_module_map_write_finding:va_start
