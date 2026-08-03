@@ -83,7 +83,6 @@ LAYERS
 
 expect 0 --help
 expect 0 -h
-expect 2
 expect 2 -Z
 expect 2 -i
 P101_MODULE_MAP_TEST_OPTION=: expect 2
@@ -128,28 +127,3 @@ expect 2 -i "$work/facts.tsv" -l "$work/missing-layers.txt"
   printf '\nP101FACT\t2\tFILE\tsrc/main.c\tmain\t0\t1\n'
 } >"$work/long.tsv"
 expect 0 -i "$work/long.tsv"
-
-cat >"$work/fact-tool" <<'TOOL'
-#!/usr/bin/env bash
-printf 'P101FACT\t2\tFILE\tsrc/main.c\tmain\t0\t1\n'
-TOOL
-chmod +x "$work/fact-tool"
-expect 0 -F "$work/fact-tool" src
-expect 0 -v -F "$work/fact-tool" src
-
-P101_WRAPPER_AUDIT="$work/fact-tool" expect 0 src
-
-cat >"$work/bad-fact-tool" <<'TOOL'
-#!/usr/bin/env bash
-printf 'P101FACT\t2\tFILE\tbroken\n'
-TOOL
-chmod +x "$work/bad-fact-tool"
-expect 2 -F "$work/bad-fact-tool" src
-
-cat >"$work/failing-tool" <<'TOOL'
-#!/usr/bin/env bash
-printf 'P101FACT\t2\tFILE\tsrc/tool.c\ttool\t0\t1\n'
-exit 1
-TOOL
-chmod +x "$work/failing-tool"
-expect 2 -F "$work/failing-tool" src

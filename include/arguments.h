@@ -14,7 +14,6 @@ struct arguments
 {
     const char *output_path;
     const char *layer_config_path;
-    const char *fact_tool_path;
     const char *compile_db_path;
     const char *facts_path;
     const char *paths[P101_MODULE_MAP_MAX_PATHS];

@@ -2,15 +2,12 @@
 #include "model.h"
 #include "model_query.h"
 #include "strings.h"
+#include <errno.h>
 #include <p101_c/p101_stdio.h>
 #include <p101_c/p101_string.h>
+#include <p101_record/record.h>
 #include <stdarg.h>
 #include <stdio.h>
-
-enum
-{
-    ASCII_CONTROL_LIMIT = 32
-};
 
 static bool p101_module_map_layer_allows_include(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const char *from_module, const char *target);
 static bool p101_module_map_module_has_source(const struct p101_env *env, const struct project_map *map, const char *module_name);
@@ -519,39 +516,10 @@ done:
 static void p101_module_map_write_json_string(const struct p101_env *env, struct p101_error *err, FILE *stream, const char *text)
 {
     P101_TRACE_SCOPE(env);
-    p101_fputc(env, err, '"', stream);
-    for(const unsigned char *cursor = (const unsigned char *)text; cursor != NULL && *cursor != '\0'; cursor++)
+    if(p101_record_write_json_string(stream, text == NULL ? "" : text) != 0)
     {
-        switch(*cursor)
-        {
-            case '"':
-                p101_fputs(env, err, "\\\"", stream);
-                break;
-            case '\\':
-                p101_fputs(env, err, "\\\\", stream);
-                break;
-            case '\n':
-                p101_fputs(env, err, "\\n", stream);
-                break;
-            case '\r':
-                p101_fputs(env, err, "\\r", stream);
-                break;
-            case '\t':
-                p101_fputs(env, err, "\\t", stream);
-                break;
-            default:
-                if(*cursor < ASCII_CONTROL_LIMIT)
-                {
-                    p101_fprintf(env, err, stream, "\\u%04x", (unsigned)*cursor);
-                }
-                else
-                {
-                    p101_fputc(env, err, *cursor, stream);
-                }
-                break;
-        }
+        P101_ERROR_RAISE_ERRNO(err, errno == 0 ? EIO : errno);
     }
-    p101_fputc(env, err, '"', stream);
 }
 
 #ifdef P101_MODULE_MAP_TESTING

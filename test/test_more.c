@@ -1,7 +1,6 @@
 #include "arguments.h"
 #include "cli.h"
 #include "constants.h"
-#include "fact_command.h"
 #include "fact_loader.h"
 #include "model.h"
 #include "model_mutation.h"
@@ -29,8 +28,6 @@ bool                      p101_module_map_test_module_has_source(const struct p1
 bool                      p101_module_map_test_layer_allows_include(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const char *from_module, const char *target);
 void                      p101_module_map_test_write_json_string(const struct p101_env *env, struct p101_error *err, FILE *stream, const char *text);
 void                      p101_module_map_test_write_finding(const struct p101_env *env, struct p101_error *err, FILE *stream, const struct arguments *args, bool *first_json, size_t *finding_count, const char *path);
-void                      p101_module_map_test_set_fact_command_modes(int executable_mode, int compile_db_mode);
-bool                      p101_module_map_test_executable_exists(const struct p101_env *env, struct p101_error *err, const char *path);
 
 static void reset_error(void)
 {
@@ -201,11 +198,10 @@ static void test_notes_and_limits(void)
     TEST_ASSERT_EQUAL_UINT64(1U, map.calls_dropped);
 }
 
-static void test_argument_and_fact_command_edges(void)
+static void test_argument_edges(void)
 {
-    struct arguments      args;
-    struct p101_tool_argv command;
-    char                 *many[P101_MODULE_MAP_MAX_PATHS + 3U];
+    struct arguments args;
+    char            *many[P101_MODULE_MAP_MAX_PATHS + 3U];
 
     p101_memset(more_env, &args, 0, sizeof(args));
     p101_module_map_arguments_init(more_env, &args);
@@ -225,13 +221,13 @@ static void test_argument_and_fact_command_edges(void)
     args.facts_path      = "";
     p101_module_map_check_arguments(more_env, more_error, &args);
     reset_error();
-    args.facts_path     = "facts";
-    args.fact_tool_path = "tool";
+    args.facts_path       = "facts";
+    args.compile_db_path  = "compile.json";
     p101_module_map_check_arguments(more_env, more_error, &args);
     reset_error();
-    args.facts_path     = NULL;
-    args.fact_tool_path = NULL;
-    args.max_functions  = 0U;
+    args.facts_path      = NULL;
+    args.compile_db_path = NULL;
+    args.max_functions   = 0U;
     p101_module_map_check_arguments(more_env, more_error, &args);
     reset_error();
     args.max_functions = 1U;
@@ -258,55 +254,6 @@ static void test_argument_and_fact_command_edges(void)
     p101_module_map_parse_arguments(more_env, more_error, (int)(sizeof(many) / sizeof(many[0])), many, &args);
     TEST_ASSERT_TRUE(p101_error_has_error(more_error));
     reset_error();
-    p101_memset(more_env, &args, 0, sizeof(args));
-    args.fact_tool_path  = "tool'quoted";
-    args.compile_db_path = "compile db.json";
-    args.paths[0]        = "src path";
-    args.path_count      = 1U;
-    p101_module_map_build_fact_argv(more_env, more_error, &command, &args);
-    TEST_ASSERT_EQUAL_STRING("tool'quoted", command.values[0]);
-    TEST_ASSERT_EQUAL_STRING("--compile-db", command.values[2]);
-    TEST_ASSERT_EQUAL_STRING("compile db.json", command.values[3]);
-    TEST_ASSERT_EQUAL_STRING("src path", command.values[command.count - 1U]);
-    p101_tool_argv_destroy(more_env, &command);
-
-    p101_memset(more_env, &args, 0, sizeof(args));
-    p101_setenv(more_env, more_error, "P101_MODULE_MAP_FACT_TOOL", "/bin/echo", 1);
-    p101_module_map_build_fact_argv(more_env, more_error, &command, &args);
-    p101_unsetenv(more_env, more_error, "P101_MODULE_MAP_FACT_TOOL");
-    TEST_ASSERT_EQUAL_STRING("/bin/echo", command.values[0]);
-    p101_tool_argv_destroy(more_env, &command);
-    p101_module_map_test_set_fact_command_modes(1, 0);
-    p101_module_map_build_fact_argv(more_env, more_error, &command, &args);
-    p101_tool_argv_destroy(more_env, &command);
-    p101_module_map_test_set_fact_command_modes(2, 1);
-    p101_module_map_build_fact_argv(more_env, more_error, &command, &args);
-    p101_tool_argv_destroy(more_env, &command);
-    p101_module_map_test_set_fact_command_modes(3, 0);
-    p101_module_map_build_fact_argv(more_env, more_error, &command, &args);
-    p101_tool_argv_destroy(more_env, &command);
-    p101_module_map_test_set_fact_command_modes(1, 0);
-    TEST_ASSERT_FALSE(p101_module_map_test_executable_exists(more_env, more_error, "not-the-first-tool"));
-    p101_module_map_test_set_fact_command_modes(0, -1);
-    p101_module_map_build_fact_argv(more_env, more_error, &command, &args);
-    p101_tool_argv_destroy(more_env, &command);
-    TEST_ASSERT_FALSE(p101_module_map_test_executable_exists(more_env, more_error, "/missing/p101-tool"));
-    p101_module_map_test_set_fact_command_modes(4, -1);
-    TEST_ASSERT_FALSE(p101_module_map_test_executable_exists(more_env, more_error, "/bin/sh"));
-    TEST_ASSERT_TRUE(p101_error_has_no_error(more_error));
-    p101_module_map_test_set_fact_command_modes(0, -1);
-
-    args.fact_tool_path = "";
-    p101_setenv(more_env, more_error, "P101_MODULE_MAP_FACT_TOOL", "", 1);
-    p101_setenv(more_env, more_error, "P101_WRAPPER_AUDIT", "/bin/echo", 1);
-    p101_module_map_build_fact_argv(more_env, more_error, &command, &args);
-    p101_tool_argv_destroy(more_env, &command);
-    p101_unsetenv(more_env, more_error, "P101_MODULE_MAP_FACT_TOOL");
-    p101_unsetenv(more_env, more_error, "P101_WRAPPER_AUDIT");
-    p101_setenv(more_env, more_error, "P101_WRAPPER_AUDIT", "", 1);
-    p101_module_map_build_fact_argv(more_env, more_error, &command, &args);
-    p101_tool_argv_destroy(more_env, &command);
-    p101_unsetenv(more_env, more_error, "P101_WRAPPER_AUDIT");
 }
 
 static void test_fact_loader_internals(void)
@@ -389,7 +336,7 @@ static void test_fact_loader_internals(void)
         p101_memset(more_env, &args, 0, sizeof(args));
         p101_memset(more_env, huge, 'x', sizeof(huge));
         huge[sizeof(huge) - 1U] = '\0';
-        args.fact_tool_path     = huge;
+        args.facts_path         = huge;
         p101_module_map_load_clang_facts(more_env, more_error, &map, &args);
         TEST_ASSERT_TRUE(p101_error_has_error(more_error));
         reset_error();
@@ -407,8 +354,7 @@ static void test_fact_loader_io_failures(void)
     int                       fd;
 
     p101_memset(more_env, &args, 0, sizeof(args));
-    args.verbose        = true;
-    args.fact_tool_path = "/bin/echo";
+    args.verbose = true;
     p101_setenv(more_env, more_error, "P101_FAULT_CALL", "1", 1);
     p101_setenv(more_env, more_error, "P101_FAULT_NAME", "fprintf", 1);
     fault_error = p101_error_create(false);
@@ -564,7 +510,7 @@ void p101_module_map_run_more_tests(void)
     RUN_TEST(test_strings_edges);
     RUN_TEST(test_queries_edges);
     RUN_TEST(test_notes_and_limits);
-    RUN_TEST(test_argument_and_fact_command_edges);
+    RUN_TEST(test_argument_edges);
     RUN_TEST(test_fact_loader_internals);
     RUN_TEST(test_fact_loader_io_failures);
     RUN_TEST(test_report_helper_edges);

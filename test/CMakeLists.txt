@@ -16,7 +16,7 @@ if (P101_TEST_COVERAGE)
     set(_COV --coverage)
 endif ()
 
-set(P101_LIBS p101_error p101_env p101_tool_event p101_c p101_c_facts p101_cli p101_filesystem p101_io p101_process p101_convert p101_util)
+set(P101_LIBS p101_error p101_env p101_record p101_tool_event p101_c p101_c_facts p101_cli p101_filesystem p101_io p101_process p101_convert p101_util)
 set(P101_PUBLIC_INCLUDE_DIRS "" CACHE STRING "Extra p101 include dirs")
 set(P101_PUBLIC_LINK_DIRS "" CACHE STRING "Extra p101 link dirs")
 separate_arguments(P101_PUBLIC_INCLUDE_DIRS_LIST NATIVE_COMMAND "${P101_PUBLIC_INCLUDE_DIRS}")
@@ -54,11 +54,11 @@ p101_add_test(test_module_map
     test_module_map.c
     test_more.c
     ../src/cli.c
-    ../src/fact_command.c
     ../src/fact_loader.c
     ../src/model_mutation.c
     ../src/model_notes.c
     ../src/model_query.c
+    ../src/native_analysis.c
     ../src/report.c
     ../src/runner.c
     ../src/strings.c
@@ -67,12 +67,12 @@ target_compile_definitions(test_module_map PRIVATE P101_MODULE_MAP_TESTING=1)
 
 add_executable(p101_module_map_coverage_cli
     ../src/cli.c
-    ../src/fact_command.c
     ../src/fact_loader.c
     ../src/main.c
     ../src/model_mutation.c
     ../src/model_notes.c
     ../src/model_query.c
+    ../src/native_analysis.c
     ../src/report.c
     ../src/runner.c
     ../src/strings.c

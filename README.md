@@ -7,9 +7,9 @@ pairing, public API surface, include edges, cycles, and configured layering.
 Error/environment ownership belongs to `p101-error-contract`; direct native
 calls that bypass available wrappers belong to `p101-wrapper-audit`.
 
-It asks `p101-wrapper-audit` to parse `.c` and `.h` files with Clang, consumes
-the resulting plain TSV fact stream, groups files into modules by basename, and
-writes a Markdown report showing:
+It uses the shared native `lib_c_facts` Clang analysis to parse `.c` and `.h`
+files, groups files into modules by basename, and writes a Markdown report
+showing:
 
 - source/header pairs;
 - public, private, and header-declared functions;
@@ -21,9 +21,9 @@ writes a Markdown report showing:
 - likely utility dumping grounds such as `util.c`.
 
 This is a teaching tool, not a proof engine. The C report generator no longer
-tries to parse C itself; `p101-wrapper-audit` owns the Clang AST pass and emits
-the shared fact stream parsed by `lib_c_facts`. That gives the module map a
-real parser while keeping the report logic readable.
+tries to parse C itself. `lib_c_facts` owns the Clang AST pass. A saved
+P101FACT stream remains available as an explicit replay input, so the module
+map keeps a real parser while its policy and report logic stay readable.
 
 Unreadable files, dangling symlinks, and missing optional layer files are skipped
 or treated as non-fatal. The tool should report the project shape it can see
@@ -33,7 +33,7 @@ the scan.
 ## Usage
 
 ```sh
-p101-module-map [-h] [-j] [-L] [-v] [-o <report>] [-l <layers.txt>] [-m <max-functions>] [-p <max-public>] [-i <facts.tsv> | -C <compile_commands.json> | -F <p101-wrapper-audit>] [path...]
+p101-module-map [-h] [-j] [-L] [-v] [-o <report>] [-l <layers.txt>] [-m <max-functions>] [-p <max-public>] [-i <facts.tsv> | -C <compile_commands.json>] [path...]
 ```
 
 Examples:
@@ -47,7 +47,6 @@ p101-module-map -C build-clang/compile_commands.json src include
 p101-module-map -L -C build-clang/compile_commands.json src include
 p101-module-map -i source-facts.tsv -o module-map.md src include
 p101-module-map -j -i source-facts.tsv -o module-map.json src include
-p101-module-map -F ../p101-wrapper-audit/p101-wrapper-audit src include
 ```
 
 With no paths, `p101-module-map` scans the current directory.
@@ -73,14 +72,6 @@ Use `-C` to select a different database explicitly.
 Use `-i` to consume an existing P101FACT v2 snapshot without starting another
 Clang AST pass. `-j` writes normalized findings with `id`, `severity`,
 `location`, `message`, and `evidence`.
-
-The Clang fact tool is resolved in this order:
-
-- `-F <tool>`;
-- `P101_MODULE_MAP_FACT_TOOL`;
-- `P101_WRAPPER_AUDIT`;
-- the sibling workspace path `../p101-wrapper-audit/p101-wrapper-audit`;
-- `p101-wrapper-audit` from `PATH`.
 
 Layer files contain allowed local include edges, one per line:
 

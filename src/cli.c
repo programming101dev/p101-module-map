@@ -37,9 +37,9 @@ void p101_module_map_parse_arguments(const struct p101_env *env, struct p101_err
 
     while(
 #ifdef P101_MODULE_MAP_TESTING
-        (opt = forced_option == NULL ? p101_getopt(env, argc, argv, ":hjLvi:o:l:m:p:C:F:") : (unsigned char)*forced_option) != -1 &&
+        (opt = forced_option == NULL ? p101_getopt(env, argc, argv, ":hjLvi:o:l:m:p:C:") : (unsigned char)*forced_option) != -1 &&
 #else
-        (opt = p101_getopt(env, argc, argv, ":hjLvi:o:l:m:p:C:F:")) != -1 &&
+        (opt = p101_getopt(env, argc, argv, ":hjLvi:o:l:m:p:C:")) != -1 &&
 #endif
         p101_error_has_no_error(err))
     {
@@ -90,11 +90,6 @@ void p101_module_map_parse_arguments(const struct p101_env *env, struct p101_err
             case 'p':
             {
                 args->max_public = p101_parse_unsigned_long(env, err, optarg, DEFAULT_MAX_PUB);
-                break;
-            }
-            case 'F':
-            {
-                args->fact_tool_path = optarg;
                 break;
             }
             case 'C':
@@ -167,9 +162,9 @@ void p101_module_map_check_arguments(const struct p101_env *env, struct p101_err
         P101_ERROR_RAISE_USER(err, "The facts path must not be empty.", ERR_USAGE);
         goto done;
     }
-    if(args->facts_path != NULL && (args->compile_db_path != NULL || args->fact_tool_path != NULL))
+    if(args->facts_path != NULL && args->compile_db_path != NULL)
     {
-        P101_ERROR_RAISE_USER(err, "The facts snapshot cannot be combined with -C or -F.", ERR_USAGE);
+        P101_ERROR_RAISE_USER(err, "The facts snapshot cannot be combined with -C.", ERR_USAGE);
         goto done;
     }
 
@@ -196,7 +191,7 @@ void p101_module_map_usage(const struct p101_env *env, struct p101_error *err, c
         p101_fprintf(env, err, stderr, "%s\n\n", message);
     }
 
-    p101_fprintf(env, err, stderr, "Usage: %s [-h] [-j] [-L] [-v] [-i <facts.tsv>] [-o <report>] [-l <layers.txt>] [-m <max-functions>] [-p <max-public>] [-C <compile_commands.json>] [-F <p101-wrapper-audit>] [path...]\n", program_name);
+    p101_fprintf(env, err, stderr, "Usage: %s [-h] [-j] [-L] [-v] [-i <facts.tsv>] [-o <report>] [-l <layers.txt>] [-m <max-functions>] [-p <max-public>] [-C <compile_commands.json>] [path...]\n", program_name);
     p101_fputs(env, err, "\nMap source/header modules and point out beginner-friendly module design issues.\n", stderr);
     p101_fputs(env, err, "\nOptions:\n", stderr);
     p101_fputs(env, err, "  -h                 Show this help\n", stderr);
@@ -208,8 +203,7 @@ void p101_module_map_usage(const struct p101_env *env, struct p101_error *err, c
     p101_fputs(env, err, "  -l <layers.txt>    Optional allowed include edges, one `module -> module` per line\n", stderr);
     p101_fputs(env, err, "  -m <count>         Warn when a module has more than this many functions; default 12\n", stderr);
     p101_fputs(env, err, "  -p <count>         Warn when a module exposes more than this many non-static functions; default 8\n", stderr);
-    p101_fputs(env, err, "  -C <file>          Compile database passed to p101-wrapper-audit\n", stderr);
-    p101_fputs(env, err, "  -F <tool>          p101-wrapper-audit executable used for Clang AST facts\n", stderr);
+    p101_fputs(env, err, "  -C <file>          Compile database used by native lib_c_facts analysis\n", stderr);
     p101_fputs(env, err, "\nExample:\n", stderr);
     p101_fprintf(env, err, stderr, "  %s -o module-map.md src include\n", program_name);
     p101_exit(env, exit_code);
