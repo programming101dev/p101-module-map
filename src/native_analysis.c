@@ -84,6 +84,10 @@ static bool apply_record(const struct p101_env *env, struct p101_error *err, con
         return p101_error_has_no_error(err);
     }
 
+#ifdef __clang__
+    #pragma clang diagnostic push
+    #pragma clang diagnostic ignored "-Wcovered-switch-default"
+#endif
     switch(record->kind)
     {
         case P101_C_ANALYSIS_FILE:
@@ -126,7 +130,12 @@ static bool apply_record(const struct p101_env *env, struct p101_error *err, con
                 p101_module_map_note_error_check(env, err, map, file);
             }
             break;
+        default:
+            break;
     }
+#ifdef __clang__
+    #pragma clang diagnostic pop
+#endif
     return p101_error_has_no_error(err);
 }
 
