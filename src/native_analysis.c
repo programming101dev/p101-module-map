@@ -67,9 +67,9 @@ void p101_module_map_load_native_analysis(const struct p101_env *env, struct p10
 
 static bool apply_record(const struct p101_env *env, struct p101_error *err, const struct p101_c_analysis_record *record, void *context)
 {
-    struct project_map *map;
-    struct source_file *file;
-    bool                keep_going;
+    struct project_map       *map;
+    const struct source_file *file;
+    bool                      keep_going;
 
     P101_TRACE_SCOPE(env);
     map        = (struct project_map *)context;
