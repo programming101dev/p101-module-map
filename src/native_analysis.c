@@ -69,19 +69,22 @@ static bool apply_record(const struct p101_env *env, struct p101_error *err, con
 {
     struct project_map *map;
     struct source_file *file;
+    bool                keep_going;
 
     P101_TRACE_SCOPE(env);
-    map = (struct project_map *)context;
+    map        = (struct project_map *)context;
+    keep_going = false;
     if(record->kind == P101_C_ANALYSIS_DIAGNOSTIC)
     {
         P101_ERROR_RAISE_USER(err, record->name == NULL ? "lib_c_facts could not parse an admitted source file." : record->name, ERR_USAGE);
-        return false;
+        goto done;
     }
 
     file = file_for_record(env, err, map, record);
     if(file == NULL)
     {
-        return p101_error_has_no_error(err);
+        keep_going = p101_error_has_no_error(err);
+        goto done;
     }
 
 #ifdef __clang__
@@ -114,7 +117,10 @@ static bool apply_record(const struct p101_env *env, struct p101_error *err, con
             note_call_semantics(env, err, map, file, record->name);
             break;
         case P101_C_ANALYSIS_TYPE:
+        case P101_C_ANALYSIS_ENUM:
             p101_module_map_add_type(env, err, map, file, record->name, record->line);
+            break;
+        case P101_C_ANALYSIS_ENUMERATOR:
             break;
         case P101_C_ANALYSIS_MACRO:
             p101_module_map_add_macro(env, err, map, file, record->name, record->line);
@@ -136,7 +142,10 @@ static bool apply_record(const struct p101_env *env, struct p101_error *err, con
 #ifdef __clang__
     #pragma clang diagnostic pop
 #endif
-    return p101_error_has_no_error(err);
+    keep_going = p101_error_has_no_error(err);
+
+done:
+    return keep_going;
 }
 
 static struct source_file *file_for_record(const struct p101_env *env, struct p101_error *err, struct project_map *map, const struct p101_c_analysis_record *record)
@@ -144,21 +153,22 @@ static struct source_file *file_for_record(const struct p101_env *env, struct p1
     struct source_file *file;
     char                module_name[MAX_NAME];
 
+    file = NULL;
     if(record->path == NULL)
     {
-        return NULL;
+        goto done;
     }
     for(size_t index = 0U; index < map->file_count; index++)
     {
         if(p101_strcmp(env, map->files[index].path, record->path) == 0)
         {
-            return &map->files[index];
+            file = &map->files[index];
+            goto done;
         }
     }
 
     p101_module_map_normalize_module_name(env, module_name, sizeof(module_name), record->path);
     p101_module_map_add_named_source_file(env, err, map, record->path, module_name, record->is_header);
-    file = NULL;
     for(size_t index = 0U; index < map->file_count; index++)
     {
         if(p101_strcmp(env, map->files[index].path, record->path) == 0)
@@ -167,6 +177,8 @@ static struct source_file *file_for_record(const struct p101_env *env, struct p1
             break;
         }
     }
+
+done:
     return file;
 }
 

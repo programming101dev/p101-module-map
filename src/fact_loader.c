@@ -111,7 +111,10 @@ static void p101_module_map_apply_fact(const struct p101_env *env, struct p101_e
             p101_module_map_note_call_semantics(env, err, map, file, fact->value);
             break;
         case P101_C_FACT_KIND_TYPE:
+        case P101_C_FACT_KIND_ENUM:
             p101_module_map_add_type(env, err, map, file, fact->value, fact->line);
+            break;
+        case P101_C_FACT_KIND_ENUMERATOR:
             break;
         case P101_C_FACT_KIND_MACRO:
             p101_module_map_add_macro(env, err, map, file, fact->value, fact->line);
@@ -188,17 +191,18 @@ void p101_module_map_load_clang_facts(const struct p101_env *env, struct p101_er
     size_t fact_count;
 
     P101_TRACE_SCOPE(env);
+    stream     = NULL;
+    fact_count = 0U;
     if(args->facts_path == NULL)
     {
         p101_module_map_load_native_analysis(env, err, map, args);
-        return;
+        goto done;
     }
 
-    stream     = p101_fopen(env, err, args->facts_path, "r");
-    fact_count = 0U;
+    stream = p101_fopen(env, err, args->facts_path, "r");
     if(stream == NULL)
     {
-        return;
+        goto done;
     }
 
     while(p101_fgets(env, err, line, sizeof(line), stream) != NULL && p101_error_has_no_error(err))
@@ -229,15 +233,19 @@ void p101_module_map_load_clang_facts(const struct p101_env *env, struct p101_er
         fact_count++;
     }
 
-    if(p101_error_has_error(err))
+done:
+    if(stream != NULL)
     {
-        p101_fclose(env, NULL, stream);    // P101_ERROR_CONTRACT_ALLOW_NO_ERROR: cleanup preserves the fact-loading error.
+        if(p101_error_has_error(err))
+        {
+            p101_fclose(env, NULL, stream);    // P101_ERROR_CONTRACT_ALLOW_NO_ERROR: cleanup preserves the fact-loading error.
+        }
+        else
+        {
+            p101_fclose(env, err, stream);
+        }
     }
-    else
-    {
-        p101_fclose(env, err, stream);
-    }
-    if(p101_error_has_no_error(err) && fact_count == 0U)
+    if(args->facts_path != NULL && p101_error_has_no_error(err) && fact_count == 0U)
     {
         P101_ERROR_RAISE_USER(err, "The fact stream did not contain any p101 C facts.", ERR_USAGE);
     }

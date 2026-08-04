@@ -19,18 +19,25 @@ static void p101_module_map_write_json_string(const struct p101_env *env, struct
 
 static bool p101_module_map_module_has_source(const struct p101_env *env, const struct project_map *map, const char *module_name)
 {
+    bool has_source;
+
+    has_source = false;
     for(size_t i = 0U; i < map->module_count; i++)
     {
         if(p101_strcmp(env, map->modules[i].name, module_name) == 0)
         {
-            return map->modules[i].source_count > 0U;
+            has_source = map->modules[i].source_count > 0U;
+            break;
         }
     }
-    return false;
+    return has_source;
 }
 
 static bool p101_module_map_module_has_unmatched_public_definition(const struct p101_env *env, const struct project_map *map, const char *module_name)
 {
+    bool has_unmatched;
+
+    has_unmatched = false;
     for(size_t i = 0U; i < map->function_count; i++)
     {
         const struct function_record *function;
@@ -38,19 +45,27 @@ static bool p101_module_map_module_has_unmatched_public_definition(const struct 
         function = &map->functions[i];
         if(!function->is_header_declaration && !function->is_static && p101_strcmp(env, function->module, module_name) == 0 && p101_strcmp(env, function->name, "main") != 0 && !p101_module_map_function_has_header_declaration(env, map, function))
         {
-            return true;
+            has_unmatched = true;
+            break;
         }
     }
-    return false;
+    return has_unmatched;
 }
 
 static bool p101_module_map_is_utility_module(const struct p101_env *env, const char *module_name)
 {
+    bool is_utility;
+
     if(p101_strcmp(env, module_name, "util") == 0)
     {
-        return true;
+        is_utility = true;
     }
-    return p101_strcmp(env, module_name, "utils") == 0;
+    else
+    {
+        is_utility = p101_strcmp(env, module_name, "utils") == 0;
+    }
+
+    return is_utility;
 }
 
 static bool p101_module_map_layer_allows_include(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const char *from_module, const char *target)
@@ -131,7 +146,8 @@ bool p101_module_map_write_report(const struct p101_env *env, struct p101_error 
     P101_TRACE_SCOPE(env);
     if(args->json)
     {
-        return p101_module_map_write_findings(env, err, stream, args, map);
+        has_findings = p101_module_map_write_findings(env, err, stream, args, map);
+        goto done;
     }
     p101_fputs(env, err, "# p101 module map\n\n", stream);
     p101_fputs(env, err, "> Parser note: this report consumes Clang AST facts from `p101-wrapper-audit`; the module design checks are still teaching heuristics, not proof obligations.\n\n", stream);
@@ -150,6 +166,7 @@ bool p101_module_map_write_report(const struct p101_env *env, struct p101_error 
     p101_module_map_write_include_graph(env, err, stream, map);
     has_findings = p101_module_map_write_findings(env, err, stream, args, map);
 
+done:
     return has_findings;
 }
 
@@ -497,7 +514,7 @@ static void p101_module_map_write_finding(const struct p101_env *env, struct p10
         p101_module_map_write_json_string(env, err, stream, path);
         p101_fprintf(env, err, stream, ",\"line\":%zu},\"message\":", line);
         p101_module_map_write_json_string(env, err, stream, message);
-        p101_fputs(env, err, ",\"evidence\":{\"fact_schema\":\"P101FACT-v2\"}}", stream);
+        p101_fputs(env, err, ",\"evidence\":{\"fact_schema\":\"P101FACT-v4\"}}", stream);
     }
     else
     {

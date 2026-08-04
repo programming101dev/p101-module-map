@@ -5,21 +5,11 @@
 #include "constants.h"
 #include <p101_c/p101_stdlib.h>
 #include <p101_c/p101_string.h>
-#include <setjmp.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-
-static jmp_buf g_fuzz_exit_jmp;
-
-_Noreturn void p101_fuzz_exit(const struct p101_env *env, int code)
-{
-    (void)env;
-    (void)code;
-    longjmp(g_fuzz_exit_jmp, 1);
-}
 
 #define FUZZ_MAX_ARGS 64
 
@@ -97,14 +87,11 @@ int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         }
     }
 
-    if(setjmp(g_fuzz_exit_jmp) == 0)
-    {
-        p101_module_map_parse_arguments(env, err, argc, argv, &args);
+    p101_module_map_parse_arguments(env, err, argc, argv, &args);
 
-        if(p101_error_has_no_error(err))
-        {
-            p101_module_map_check_arguments(env, err, &args);
-        }
+    if(!args.show_help && p101_error_has_no_error(err))
+    {
+        p101_module_map_check_arguments(env, err, &args);
     }
 
 done:

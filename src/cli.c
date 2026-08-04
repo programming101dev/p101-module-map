@@ -3,7 +3,6 @@
 #include "errors.h"
 #include <p101_c/p101_ctype.h>
 #include <p101_c/p101_stdio.h>
-#include <p101_c/p101_stdlib.h>
 #include <p101_c/p101_string.h>
 #include <p101_cli/cli.h>
 #include <p101_convert/integer.h>
@@ -32,7 +31,8 @@ void p101_module_map_parse_arguments(const struct p101_env *env, struct p101_err
 
     if(argc == 2 && p101_strcmp(env, argv[1], "--help") == 0)
     {
-        p101_module_map_usage(env, err, argv[0], EXIT_SUCCESS, NULL);
+        args->show_help = true;
+        goto done;
     }
 
     while(
@@ -50,7 +50,8 @@ void p101_module_map_parse_arguments(const struct p101_env *env, struct p101_err
         {
             case 'h':
             {
-                p101_module_map_usage(env, err, argv[0], EXIT_SUCCESS, NULL);
+                args->show_help = true;
+                break;
             }
             case 'v':
             {
@@ -186,6 +187,8 @@ done:
 
 void p101_module_map_usage(const struct p101_env *env, struct p101_error *err, const char *program_name, int exit_code, const char *message)
 {
+    (void)exit_code;
+
     if(message != NULL)
     {
         p101_fprintf(env, err, stderr, "%s\n\n", message);
@@ -198,7 +201,7 @@ void p101_module_map_usage(const struct p101_env *env, struct p101_error *err, c
     p101_fputs(env, err, "  -j                 Emit normalized JSON findings instead of Markdown\n", stderr);
     p101_fputs(env, err, "  -L                 Library mode: do not infer public API use from this repo alone\n", stderr);
     p101_fputs(env, err, "  -v                 Enable p101 tracing inside p101-module-map\n", stderr);
-    p101_fputs(env, err, "  -i <facts.tsv>     Read a reusable P101FACT v2 snapshot instead of invoking Clang\n", stderr);
+    p101_fputs(env, err, "  -i <facts.tsv>     Read a reusable P101FACT v4 snapshot instead of invoking Clang\n", stderr);
     p101_fputs(env, err, "  -o <report>        Write the report to a file instead of stdout\n", stderr);
     p101_fputs(env, err, "  -l <layers.txt>    Optional allowed include edges, one `module -> module` per line\n", stderr);
     p101_fputs(env, err, "  -m <count>         Warn when a module has more than this many functions; default 12\n", stderr);
@@ -206,5 +209,4 @@ void p101_module_map_usage(const struct p101_env *env, struct p101_error *err, c
     p101_fputs(env, err, "  -C <file>          Compile database used by native lib_c_facts analysis\n", stderr);
     p101_fputs(env, err, "\nExample:\n", stderr);
     p101_fprintf(env, err, stderr, "  %s -o module-map.md src include\n", program_name);
-    p101_exit(env, exit_code);
 }

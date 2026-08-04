@@ -23,6 +23,7 @@ struct arguments
     bool        verbose;
     bool        library_mode;
     bool        json;
+    bool        show_help;
 };
 
 #endif    // P101_MODULE_MAP_ARGUMENTS_H

@@ -368,7 +368,7 @@ static void test_fact_loader_io_failures(void)
 
     fd     = p101_mkstemp(more_env, more_error, path);
     stream = p101_fdopen(more_env, more_error, fd, "w");
-    p101_fputs(more_env, more_error, "P101FACT\t2\tFILE\tsrc/x.c\tx\t0\t1\n", stream);
+    p101_fputs(more_env, more_error, "P101FACT\t4\tFILE\tsrc/x.c\tx\t0\t1\n", stream);
     p101_fclose(more_env, more_error, stream);
     p101_memset(more_env, &args, 0, sizeof(args));
     args.facts_path = path;
@@ -387,10 +387,17 @@ static void test_fact_loader_io_failures(void)
 
 static void set_function(struct function_record *function, const char *module, const char *name, bool is_static, bool is_header)
 {
+    const char *path;
+
+    path = "x.c";
+    if(is_header)
+    {
+        path = "x.h";
+    }
     p101_memset(more_env, function, 0, sizeof(*function));
     p101_module_map_copy_string(more_env, function->module, sizeof(function->module), module);
     p101_module_map_copy_string(more_env, function->name, sizeof(function->name), name);
-    p101_module_map_copy_string(more_env, function->path, sizeof(function->path), is_header ? "x.h" : "x.c");
+    p101_module_map_copy_string(more_env, function->path, sizeof(function->path), path);
     function->is_static             = is_static;
     function->is_header_declaration = is_header;
 }
