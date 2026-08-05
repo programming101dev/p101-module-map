@@ -221,8 +221,8 @@ static void test_argument_edges(void)
     args.facts_path      = "";
     p101_module_map_check_arguments(more_env, more_error, &args);
     reset_error();
-    args.facts_path       = "facts";
-    args.compile_db_path  = "compile.json";
+    args.facts_path      = "facts";
+    args.compile_db_path = "compile.json";
     p101_module_map_check_arguments(more_env, more_error, &args);
     reset_error();
     args.facts_path      = NULL;
