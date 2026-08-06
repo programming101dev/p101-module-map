@@ -14,6 +14,11 @@ static struct source_file *file_for_record(const struct p101_env *env, struct p1
 
 void p101_module_map_load_native_analysis(const struct p101_env *env, struct p101_error *err, struct project_map *map, const struct arguments *args)
 {
+    int                            p101_expression_result_8;
+    bool                           p101_call_result_9;
+    bool                           p101_call_result_1;
+    bool                           p101_call_result_2;
+    bool                           p101_call_result_3;
     static const char              default_path[] = ".";
     const char                    *paths[P101_MODULE_MAP_MAX_PATHS];
     size_t                         path_count;
@@ -36,14 +41,24 @@ void p101_module_map_load_native_analysis(const struct p101_env *env, struct p10
         }
     }
 
-    compile_db = args->compile_db_path;
-    if(compile_db == NULL && p101_c_facts_find_clang_compile_database(env, err, ".", discovered_compile_db, sizeof(discovered_compile_db)))
+    compile_db               = args->compile_db_path;
+    p101_expression_result_8 = 0;
+    if(compile_db == NULL)
+    {
+        p101_call_result_9 = p101_c_facts_find_clang_compile_database(env, err, ".", discovered_compile_db, sizeof(discovered_compile_db));
+        if(p101_call_result_9)
+        {
+            p101_expression_result_8 = 1;
+        }
+    }
+    if(p101_expression_result_8)
     {
         compile_db = discovered_compile_db;
     }
-    if(p101_error_has_error(err))
+    p101_call_result_1 = p101_error_has_error(err);
+    if(p101_call_result_1)
     {
-        return;
+        goto done;
     }
 
     p101_memset(env, &options, 0, sizeof(options));
@@ -58,14 +73,21 @@ void p101_module_map_load_native_analysis(const struct p101_env *env, struct p10
     {
         p101_fprintf(env, err, stderr, "p101-module-map: native lib_c_facts scan (%zu path%s%s)\n", path_count, path_count == 1U ? "" : "s", compile_db == NULL ? "" : ", compile database active");
     }
-    if(p101_error_has_no_error(err))
+    p101_call_result_2 = p101_error_has_no_error(err);
+    if(p101_call_result_2)
     {
-        (void)p101_c_analysis_scan(env, err, &options, apply_record, map);
+        p101_call_result_3 = p101_c_analysis_scan(env, err, &options, apply_record, map);
+        (void)p101_call_result_3;
     }
+
+done:
+    return;
 }
 
 static bool apply_record(const struct p101_env *env, struct p101_error *err, const struct p101_c_analysis_record *record, void *context)
 {
+    int                       p101_call_result_7;
+    int                       p101_call_result_6;
     struct project_map       *map;
     const struct source_file *file;
     bool                      keep_going;
@@ -124,16 +146,23 @@ static bool apply_record(const struct p101_env *env, struct p101_error *err, con
             p101_module_map_add_macro(env, err, map, file, record->name, record->line);
             break;
         case P101_C_ANALYSIS_NOTE:
-            if(p101_strcmp(env, record->name, "ERROR_USE") == 0)
+        {
+            p101_call_result_6 = p101_strcmp(env, record->name, "ERROR_USE");
+            if(p101_call_result_6 == 0)
             {
                 p101_module_map_note_error_use(env, err, map, file);
             }
-            else if(p101_strcmp(env, record->name, "ERROR_CHECK") == 0)
+            else
             {
-                p101_module_map_note_error_use(env, err, map, file);
-                p101_module_map_note_error_check(env, err, map, file);
+                p101_call_result_7 = p101_strcmp(env, record->name, "ERROR_CHECK");
+                if(p101_call_result_7 == 0)
+                {
+                    p101_module_map_note_error_use(env, err, map, file);
+                    p101_module_map_note_error_check(env, err, map, file);
+                }
             }
-            break;
+        }
+        break;
         default:
             break;
     }
@@ -148,6 +177,8 @@ done:
 
 static struct source_file *file_for_record(const struct p101_env *env, struct p101_error *err, struct project_map *map, const struct p101_c_analysis_record *record)
 {
+    int                 p101_call_result_4;
+    int                 p101_call_result_5;
     struct source_file *file;
     char                module_name[MAX_NAME];
 
@@ -158,7 +189,8 @@ static struct source_file *file_for_record(const struct p101_env *env, struct p1
     }
     for(size_t index = 0U; index < map->file_count; index++)
     {
-        if(p101_strcmp(env, map->files[index].path, record->path) == 0)
+        p101_call_result_4 = p101_strcmp(env, map->files[index].path, record->path);
+        if(p101_call_result_4 == 0)
         {
             file = &map->files[index];
             goto done;
@@ -169,7 +201,8 @@ static struct source_file *file_for_record(const struct p101_env *env, struct p1
     p101_module_map_add_named_source_file(env, err, map, record->path, module_name, record->is_header);
     for(size_t index = 0U; index < map->file_count; index++)
     {
-        if(p101_strcmp(env, map->files[index].path, record->path) == 0)
+        p101_call_result_5 = p101_strcmp(env, map->files[index].path, record->path);
+        if(p101_call_result_5 == 0)
         {
             file = &map->files[index];
             break;

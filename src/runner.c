@@ -10,6 +10,8 @@
 
 int p101_module_map_run(const struct p101_env *env, struct p101_error *err, const struct arguments *args)
 {
+    bool                      p101_call_result_1;
+    bool                      p101_call_result_2;
     static struct project_map map;
     FILE                     *stream;
     int                       ret_val;
@@ -21,7 +23,8 @@ int p101_module_map_run(const struct p101_env *env, struct p101_error *err, cons
     ret_val = EXIT_TROUBLE;
 
     p101_module_map_load_clang_facts(env, err, &map, args);
-    if(p101_error_has_error(err))
+    p101_call_result_1 = p101_error_has_error(err);
+    if(p101_call_result_1)
     {
         goto done;
     }
@@ -35,8 +38,9 @@ int p101_module_map_run(const struct p101_env *env, struct p101_error *err, cons
         }
     }
 
-    has_findings = p101_module_map_write_report(env, err, stream, args, &map);
-    if(p101_error_has_no_error(err))
+    has_findings       = p101_module_map_write_report(env, err, stream, args, &map);
+    p101_call_result_2 = p101_error_has_no_error(err);
+    if(p101_call_result_2)
     {
         if(has_findings)
         {

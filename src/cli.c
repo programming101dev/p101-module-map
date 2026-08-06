@@ -20,7 +20,10 @@ void p101_module_map_arguments_init(const struct p101_env *env, struct arguments
 
 void p101_module_map_parse_arguments(const struct p101_env *env, struct p101_error *err, int argc, char *argv[], struct arguments *args)
 {
-    int opt;
+    int  p101_expression_result_2;
+    int  p101_call_result_3;
+    bool p101_call_result_1;
+    int  opt;
 #ifdef P101_MODULE_MAP_TESTING
     const char *forced_option;
 #endif
@@ -31,20 +34,44 @@ void p101_module_map_parse_arguments(const struct p101_env *env, struct p101_err
     forced_option = getenv("P101_MODULE_MAP_TEST_OPTION");
 #endif
 
-    if(argc == 2 && p101_strcmp(env, argv[1], "--help") == 0)
+    p101_expression_result_2 = 0;
+    if(argc == 2)
+    {
+        p101_call_result_3 = p101_strcmp(env, argv[1], "--help");
+        if(p101_call_result_3 == 0)
+        {
+            p101_expression_result_2 = 1;
+        }
+    }
+    if(p101_expression_result_2)
     {
         args->show_help = true;
         goto done;
     }
 
-    while(
-#ifdef P101_MODULE_MAP_TESTING
-        (opt = forced_option == NULL ? p101_getopt(env, argc, argv, ":hjLvi:o:l:m:p:C:") : (unsigned char)*forced_option) != -1 &&
-#else
-        (opt = p101_getopt(env, argc, argv, ":hjLvi:o:l:m:p:C:")) != -1 &&
-#endif
-        p101_error_has_no_error(err))
+    for(;;)
     {
+#ifdef P101_MODULE_MAP_TESTING
+        if(forced_option == NULL)
+        {
+            opt = p101_getopt(env, argc, argv, ":hjLvi:o:l:m:p:C:");
+        }
+        else
+        {
+            opt = (unsigned char)*forced_option;
+        }
+#else
+        opt = p101_getopt(env, argc, argv, ":hjLvi:o:l:m:p:C:");
+#endif
+        if(opt == -1)
+        {
+            break;
+        }
+        p101_call_result_1 = p101_error_has_no_error(err);
+        if(!p101_call_result_1)
+        {
+            break;
+        }
 #ifdef P101_MODULE_MAP_TESTING
         forced_option = NULL;
 #endif
@@ -120,7 +147,8 @@ void p101_module_map_parse_arguments(const struct p101_env *env, struct p101_err
         }
     }
 
-    if(p101_error_has_error(err))
+    p101_call_result_1 = p101_error_has_error(err);
+    if(p101_call_result_1)
     {
         goto done;
     }

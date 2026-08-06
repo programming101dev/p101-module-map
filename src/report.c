@@ -19,12 +19,14 @@ static void p101_module_map_write_json_string(const struct p101_env *env, struct
 
 static bool p101_module_map_module_has_source(const struct p101_env *env, const struct project_map *map, const char *module_name)
 {
+    int  p101_call_result_1;
     bool has_source;
 
     has_source = false;
     for(size_t i = 0U; i < map->module_count; i++)
     {
-        if(p101_strcmp(env, map->modules[i].name, module_name) == 0)
+        p101_call_result_1 = p101_strcmp(env, map->modules[i].name, module_name);
+        if(p101_call_result_1 == 0)
         {
             has_source = map->modules[i].source_count > 0U;
             break;
@@ -35,6 +37,13 @@ static bool p101_module_map_module_has_source(const struct p101_env *env, const 
 
 static bool p101_module_map_module_has_unmatched_public_definition(const struct p101_env *env, const struct project_map *map, const char *module_name)
 {
+    int  p101_expression_result_8;
+    int  p101_expression_result_9;
+    int  p101_expression_result_10;
+    int  p101_expression_result_11;
+    int  p101_call_result_12;
+    int  p101_call_result_13;
+    bool p101_call_result_14;
     bool has_unmatched;
 
     has_unmatched = false;
@@ -42,8 +51,43 @@ static bool p101_module_map_module_has_unmatched_public_definition(const struct 
     {
         const struct function_record *function;
 
-        function = &map->functions[i];
-        if(!function->is_header_declaration && !function->is_static && p101_strcmp(env, function->module, module_name) == 0 && p101_strcmp(env, function->usr, "c:@F@main") != 0 && !p101_module_map_function_has_header_declaration(env, map, function))
+        function                  = &map->functions[i];
+        p101_expression_result_11 = 0;
+        if(!function->is_header_declaration)
+        {
+            if(!function->is_static)
+            {
+                p101_expression_result_11 = 1;
+            }
+        }
+        p101_expression_result_10 = 0;
+        if(p101_expression_result_11)
+        {
+            p101_call_result_12 = p101_strcmp(env, function->module, module_name);
+            if(p101_call_result_12 == 0)
+            {
+                p101_expression_result_10 = 1;
+            }
+        }
+        p101_expression_result_9 = 0;
+        if(p101_expression_result_10)
+        {
+            p101_call_result_13 = p101_strcmp(env, function->usr, "c:@F@main");
+            if(p101_call_result_13 != 0)
+            {
+                p101_expression_result_9 = 1;
+            }
+        }
+        p101_expression_result_8 = 0;
+        if(p101_expression_result_9)
+        {
+            p101_call_result_14 = p101_module_map_function_has_header_declaration(env, map, function);
+            if(!p101_call_result_14)
+            {
+                p101_expression_result_8 = 1;
+            }
+        }
+        if(p101_expression_result_8)
         {
             has_unmatched = true;
             break;
@@ -54,12 +98,25 @@ static bool p101_module_map_module_has_unmatched_public_definition(const struct 
 
 static bool p101_module_map_module_contains_entrypoint(const struct p101_env *env, const struct project_map *map, const char *module_name)
 {
+    int  p101_expression_result_15;
+    int  p101_call_result_16;
+    int  p101_call_result_17;
     bool contains_entrypoint;
 
     contains_entrypoint = false;
     for(size_t index = 0U; index < map->function_count; index++)
     {
-        if(p101_strcmp(env, map->functions[index].module, module_name) == 0 && p101_strcmp(env, map->functions[index].usr, "c:@F@main") == 0)
+        p101_call_result_16       = p101_strcmp(env, map->functions[index].module, module_name);
+        p101_expression_result_15 = 0;
+        if(p101_call_result_16 == 0)
+        {
+            p101_call_result_17 = p101_strcmp(env, map->functions[index].usr, "c:@F@main");
+            if(p101_call_result_17 == 0)
+            {
+                p101_expression_result_15 = 1;
+            }
+        }
+        if(p101_expression_result_15)
         {
             contains_entrypoint = true;
             break;
@@ -70,14 +127,21 @@ static bool p101_module_map_module_contains_entrypoint(const struct p101_env *en
 
 static bool p101_module_map_layer_allows_include(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const char *from_module, const char *target)
 {
+    int   p101_expression_result_18;
+    int   p101_call_result_19;
+    int   p101_call_result_20;
+    int   p101_call_result_2;
     FILE *stream;
     bool  ret_val;
     char  line[MAX_LINE];
+    bool  no_error;
+    char *line_result;
 
     ret_val = true;
     stream  = NULL;
 
-    if(p101_strcmp(env, from_module, target) == 0)
+    p101_call_result_2 = p101_strcmp(env, from_module, target);
+    if(p101_call_result_2 == 0)
     {
         goto done;
     }
@@ -95,13 +159,23 @@ static bool p101_module_map_layer_allows_include(const struct p101_env *env, str
         goto done;
     }
 
-    while(p101_error_has_no_error(err) && p101_fgets(env, err, line, sizeof(line), stream) != NULL)
+    for(;;)
     {
         char       *left;
         char       *right;
         char       *arrow;
         const char *found;
 
+        no_error = p101_error_has_no_error(err);
+        if(!no_error)
+        {
+            break;
+        }
+        line_result = p101_fgets(env, err, line, sizeof(line), stream);
+        if(line_result == NULL)
+        {
+            break;
+        }
         p101_module_map_trim_right(env, line);
         left = p101_module_map_trim_left(env, line);
 
@@ -123,7 +197,17 @@ static bool p101_module_map_layer_allows_include(const struct p101_env *env, str
         right = p101_module_map_trim_left(env, arrow + 2);
         p101_module_map_trim_right(env, right);
 
-        if(p101_strcmp(env, left, from_module) == 0 && p101_strcmp(env, right, target) == 0)
+        p101_call_result_19       = p101_strcmp(env, left, from_module);
+        p101_expression_result_18 = 0;
+        if(p101_call_result_19 == 0)
+        {
+            p101_call_result_20 = p101_strcmp(env, right, target);
+            if(p101_call_result_20 == 0)
+            {
+                p101_expression_result_18 = 1;
+            }
+        }
+        if(p101_expression_result_18)
         {
             ret_val = true;
             break;
@@ -228,6 +312,44 @@ void p101_module_map_write_include_graph(const struct p101_env *env, struct p101
 
 bool p101_module_map_write_findings(const struct p101_env *env, struct p101_error *err, FILE *stream, const struct arguments *args, const struct project_map *map)
 {
+    int    p101_expression_result_21;
+    int    p101_expression_result_22;
+    int    p101_expression_result_23;
+    bool   p101_call_result_24;
+    bool   p101_call_result_25;
+    int    p101_expression_result_26;
+    int    p101_expression_result_27;
+    bool   p101_call_result_28;
+    int    p101_expression_result_29;
+    int    p101_expression_result_30;
+    int    p101_expression_result_31;
+    int    p101_expression_result_32;
+    int    p101_expression_result_33;
+    bool   p101_call_result_34;
+    bool   p101_call_result_35;
+    int    p101_call_result_36;
+    int    p101_expression_result_37;
+    int    p101_expression_result_38;
+    int    p101_expression_result_39;
+    bool   p101_call_result_40;
+    bool   p101_call_result_41;
+    int    p101_expression_result_42;
+    int    p101_expression_result_43;
+    int    p101_expression_result_44;
+    bool   p101_call_result_45;
+    bool   p101_call_result_46;
+    int    p101_expression_result_47;
+    bool   p101_call_result_48;
+    bool   p101_call_result_49;
+    int    p101_expression_result_50;
+    int    p101_expression_result_51;
+    bool   p101_call_result_52;
+    int    p101_call_result_53;
+    int    p101_expression_result_54;
+    bool   p101_call_result_55;
+    int    p101_expression_result_56;
+    bool   p101_call_result_57;
+    bool   p101_call_result_3;
     bool   wrote;
     bool   first_json;
     size_t finding_count;
@@ -249,8 +371,34 @@ bool p101_module_map_write_findings(const struct p101_env *env, struct p101_erro
     {
         const struct module *module;
 
-        module = &map->modules[i];
-        if(module->source_count > 0U && module->header_count == 0U && !p101_module_map_module_contains_entrypoint(env, map, module->name) && p101_module_map_module_has_unmatched_public_definition(env, map, module->name))
+        module                    = &map->modules[i];
+        p101_expression_result_23 = 0;
+        if(module->source_count > 0U)
+        {
+            if(module->header_count == 0U)
+            {
+                p101_expression_result_23 = 1;
+            }
+        }
+        p101_expression_result_22 = 0;
+        if(p101_expression_result_23)
+        {
+            p101_call_result_24 = p101_module_map_module_contains_entrypoint(env, map, module->name);
+            if(!p101_call_result_24)
+            {
+                p101_expression_result_22 = 1;
+            }
+        }
+        p101_expression_result_21 = 0;
+        if(p101_expression_result_22)
+        {
+            p101_call_result_25 = p101_module_map_module_has_unmatched_public_definition(env, map, module->name);
+            if(p101_call_result_25)
+            {
+                p101_expression_result_21 = 1;
+            }
+        }
+        if(p101_expression_result_21)
         {
             p101_module_map_write_finding(env,
                                           err,
@@ -289,7 +437,24 @@ bool p101_module_map_write_findings(const struct p101_env *env, struct p101_erro
             wrote = true;
         }
 
-        if(!args->library_mode && p101_module_map_module_contains_entrypoint(env, map, module->name) && module->function_count > 3U)
+        p101_expression_result_27 = 0;
+        if(!args->library_mode)
+        {
+            p101_call_result_28 = p101_module_map_module_contains_entrypoint(env, map, module->name);
+            if(p101_call_result_28)
+            {
+                p101_expression_result_27 = 1;
+            }
+        }
+        p101_expression_result_26 = 0;
+        if(p101_expression_result_27)
+        {
+            if(module->function_count > 3U)
+            {
+                p101_expression_result_26 = 1;
+            }
+        }
+        if(p101_expression_result_26)
         {
             p101_module_map_write_finding(env,
                                           err,
@@ -310,9 +475,51 @@ bool p101_module_map_write_findings(const struct p101_env *env, struct p101_erro
     {
         const struct function_record *function;
 
-        function = &map->functions[i];
-        if(!args->library_mode && !function->is_header_declaration && !function->is_static && !p101_module_map_function_has_header_declaration(env, map, function) && !p101_module_map_function_used_outside_module(env, map, function) &&
-           p101_strcmp(env, function->usr, "c:@F@main") != 0)
+        function                  = &map->functions[i];
+        p101_expression_result_33 = 0;
+        if(!args->library_mode)
+        {
+            if(!function->is_header_declaration)
+            {
+                p101_expression_result_33 = 1;
+            }
+        }
+        p101_expression_result_32 = 0;
+        if(p101_expression_result_33)
+        {
+            if(!function->is_static)
+            {
+                p101_expression_result_32 = 1;
+            }
+        }
+        p101_expression_result_31 = 0;
+        if(p101_expression_result_32)
+        {
+            p101_call_result_34 = p101_module_map_function_has_header_declaration(env, map, function);
+            if(!p101_call_result_34)
+            {
+                p101_expression_result_31 = 1;
+            }
+        }
+        p101_expression_result_30 = 0;
+        if(p101_expression_result_31)
+        {
+            p101_call_result_35 = p101_module_map_function_used_outside_module(env, map, function);
+            if(!p101_call_result_35)
+            {
+                p101_expression_result_30 = 1;
+            }
+        }
+        p101_expression_result_29 = 0;
+        if(p101_expression_result_30)
+        {
+            p101_call_result_36 = p101_strcmp(env, function->usr, "c:@F@main");
+            if(p101_call_result_36 != 0)
+            {
+                p101_expression_result_29 = 1;
+            }
+        }
+        if(p101_expression_result_29)
         {
             p101_module_map_write_finding(env,
                                           err,
@@ -328,7 +535,40 @@ bool p101_module_map_write_findings(const struct p101_env *env, struct p101_erro
             wrote = true;
         }
 
-        if(function->is_header_declaration && (!args->library_mode || p101_module_map_module_has_source(env, map, function->module)) && !p101_module_map_function_has_non_static_definition(env, map, function))
+        p101_expression_result_38 = 0;
+        if(function->is_header_declaration)
+        {
+            if(!args->library_mode)
+            {
+                p101_expression_result_39 = 1;
+            }
+            else
+            {
+                p101_call_result_40 = p101_module_map_module_has_source(env, map, function->module);
+                if(p101_call_result_40)
+                {
+                    p101_expression_result_39 = 1;
+                }
+                else
+                {
+                    p101_expression_result_39 = 0;
+                }
+            }
+            if(p101_expression_result_39)
+            {
+                p101_expression_result_38 = 1;
+            }
+        }
+        p101_expression_result_37 = 0;
+        if(p101_expression_result_38)
+        {
+            p101_call_result_41 = p101_module_map_function_has_non_static_definition(env, map, function);
+            if(!p101_call_result_41)
+            {
+                p101_expression_result_37 = 1;
+            }
+        }
+        if(p101_expression_result_37)
         {
             p101_module_map_write_finding(env,
                                           err,
@@ -344,7 +584,33 @@ bool p101_module_map_write_findings(const struct p101_env *env, struct p101_erro
             wrote = true;
         }
 
-        if(!args->library_mode && function->is_header_declaration && !p101_module_map_module_used_outside_module(env, map, function->module) && !p101_module_map_module_contains_entrypoint(env, map, function->module))
+        p101_expression_result_44 = 0;
+        if(!args->library_mode)
+        {
+            if(function->is_header_declaration)
+            {
+                p101_expression_result_44 = 1;
+            }
+        }
+        p101_expression_result_43 = 0;
+        if(p101_expression_result_44)
+        {
+            p101_call_result_45 = p101_module_map_module_used_outside_module(env, map, function->module);
+            if(!p101_call_result_45)
+            {
+                p101_expression_result_43 = 1;
+            }
+        }
+        p101_expression_result_42 = 0;
+        if(p101_expression_result_43)
+        {
+            p101_call_result_46 = p101_module_map_module_contains_entrypoint(env, map, function->module);
+            if(!p101_call_result_46)
+            {
+                p101_expression_result_42 = 1;
+            }
+        }
+        if(p101_expression_result_42)
         {
             p101_module_map_write_finding(env,
                                           err,
@@ -366,8 +632,18 @@ bool p101_module_map_write_findings(const struct p101_env *env, struct p101_erro
     {
         const struct macro_record *macro;
 
-        macro = &map->macros[i];
-        if(!p101_module_map_module_used_outside_module(env, map, macro->module) && !p101_module_map_symbol_used_outside_module(env, map, macro->module, macro->name))
+        macro                     = &map->macros[i];
+        p101_call_result_48       = p101_module_map_module_used_outside_module(env, map, macro->module);
+        p101_expression_result_47 = 0;
+        if(!p101_call_result_48)
+        {
+            p101_call_result_49 = p101_module_map_symbol_used_outside_module(env, map, macro->module, macro->name);
+            if(!p101_call_result_49)
+            {
+                p101_expression_result_47 = 1;
+            }
+        }
+        if(p101_expression_result_47)
         {
             p101_module_map_write_finding(env,
                                           err,
@@ -389,8 +665,9 @@ bool p101_module_map_write_findings(const struct p101_env *env, struct p101_erro
     {
         const struct type_record *type;
 
-        type = &map->types[i];
-        if(!p101_module_map_module_used_outside_module(env, map, type->module))
+        type               = &map->types[i];
+        p101_call_result_3 = p101_module_map_module_used_outside_module(env, map, type->module);
+        if(!p101_call_result_3)
         {
             p101_module_map_write_finding(env,
                                           err,
@@ -412,8 +689,26 @@ bool p101_module_map_write_findings(const struct p101_env *env, struct p101_erro
     {
         const struct include_record *include;
 
-        include = &map->includes[i];
-        if(include->is_local && p101_module_map_module_has_direct_include(env, map, include->target, include->from_module) && p101_strcmp(env, include->from_module, include->target) != 0)
+        include                   = &map->includes[i];
+        p101_expression_result_51 = 0;
+        if(include->is_local)
+        {
+            p101_call_result_52 = p101_module_map_module_has_direct_include(env, map, include->target, include->from_module);
+            if(p101_call_result_52)
+            {
+                p101_expression_result_51 = 1;
+            }
+        }
+        p101_expression_result_50 = 0;
+        if(p101_expression_result_51)
+        {
+            p101_call_result_53 = p101_strcmp(env, include->from_module, include->target);
+            if(p101_call_result_53 != 0)
+            {
+                p101_expression_result_50 = 1;
+            }
+        }
+        if(p101_expression_result_50)
         {
             p101_module_map_write_finding(env,
                                           err,
@@ -430,7 +725,16 @@ bool p101_module_map_write_findings(const struct p101_env *env, struct p101_erro
             wrote = true;
         }
 
-        if(include->is_local && !p101_module_map_include_target_exists(env, map, include->target))
+        p101_expression_result_54 = 0;
+        if(include->is_local)
+        {
+            p101_call_result_55 = p101_module_map_include_target_exists(env, map, include->target);
+            if(!p101_call_result_55)
+            {
+                p101_expression_result_54 = 1;
+            }
+        }
+        if(p101_expression_result_54)
         {
             p101_module_map_write_finding(env,
                                           err,
@@ -447,7 +751,16 @@ bool p101_module_map_write_findings(const struct p101_env *env, struct p101_erro
             wrote = true;
         }
 
-        if(include->is_local && !p101_module_map_layer_allows_include(env, err, args, include->from_module, include->target))
+        p101_expression_result_56 = 0;
+        if(include->is_local)
+        {
+            p101_call_result_57 = p101_module_map_layer_allows_include(env, err, args, include->from_module, include->target);
+            if(!p101_call_result_57)
+            {
+                p101_expression_result_56 = 1;
+            }
+        }
+        if(p101_expression_result_56)
         {
             p101_module_map_write_finding(env,
                                           err,
@@ -482,14 +795,18 @@ bool p101_module_map_write_findings(const struct p101_env *env, struct p101_erro
 
 static void p101_module_map_write_finding(const struct p101_env *env, struct p101_error *err, FILE *stream, const struct arguments *args, bool *first_json, size_t *finding_count, const char *id, const char *path, size_t line, const char *format, ...)
 {
+    int     p101_call_result_4;
+    bool    p101_call_result_5;
     char    message[MAX_LINE];
     va_list arguments;
 
     P101_TRACE_SCOPE(env);
     va_start(arguments, format);
-    (void)p101_vsnprintf(env, err, message, sizeof(message), format, arguments);
+    p101_call_result_4 = p101_vsnprintf(env, err, message, sizeof(message), format, arguments);
+    (void)p101_call_result_4;
     va_end(arguments);
-    if(p101_error_has_error(err))
+    p101_call_result_5 = p101_error_has_error(err);
+    if(p101_call_result_5)
     {
         goto done;
     }
@@ -526,8 +843,10 @@ done:
 
 static void p101_module_map_write_json_string(const struct p101_env *env, struct p101_error *err, FILE *stream, const char *text)
 {
+    int p101_call_result_6;
     P101_TRACE_SCOPE(env);
-    if(p101_record_write_json_string(stream, text == NULL ? "" : text) != 0)
+    p101_call_result_6 = p101_record_write_json_string(stream, text == NULL ? "" : text);
+    if(p101_call_result_6 != 0)
     {
         P101_ERROR_RAISE_ERRNO(err, errno == 0 ? EIO : errno);
     }
@@ -557,6 +876,7 @@ void p101_module_map_test_write_finding(const struct p101_env *env, struct p101_
 
 void p101_module_map_write_functions_for_module(const struct p101_env *env, struct p101_error *err, FILE *stream, const struct project_map *map, const char *module_name)
 {
+    int  p101_call_result_7;
     bool wrote;
 
     P101_TRACE_SCOPE(env);
@@ -566,8 +886,9 @@ void p101_module_map_write_functions_for_module(const struct p101_env *env, stru
     {
         const struct function_record *function;
 
-        function = &map->functions[i];
-        if(p101_strcmp(env, function->module, module_name) == 0)
+        function           = &map->functions[i];
+        p101_call_result_7 = p101_strcmp(env, function->module, module_name);
+        if(p101_call_result_7 == 0)
         {
             const char *visibility;
 

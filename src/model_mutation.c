@@ -75,7 +75,27 @@ static void normalize_relative_path(const struct p101_env *env, char destination
 
 static void local_include_to_module(const struct p101_env *env, char *destination, size_t destination_size, const struct source_file *file, const char *target)
 {
-    if(p101_strncmp(env, target, "./", sizeof("./") - 1U) == 0 || p101_strncmp(env, target, "../", sizeof("../") - 1U) == 0)
+    int p101_expression_result_2;
+    int p101_call_result_3;
+    int p101_call_result_4;
+    p101_call_result_3 = p101_strncmp(env, target, "./", sizeof("./") - 1U);
+    if(p101_call_result_3 == 0)
+    {
+        p101_expression_result_2 = 1;
+    }
+    else
+    {
+        p101_call_result_4 = p101_strncmp(env, target, "../", sizeof("../") - 1U);
+        if(p101_call_result_4 == 0)
+        {
+            p101_expression_result_2 = 1;
+        }
+        else
+        {
+            p101_expression_result_2 = 0;
+        }
+    }
+    if(p101_expression_result_2)
     {
         char        joined[MAX_NAME];
         char        normalized[MAX_NAME];
@@ -106,6 +126,7 @@ static void local_include_to_module(const struct p101_env *env, char *destinatio
 
 static struct module *p101_module_map_get_module(const struct p101_env *env, struct p101_error *err, struct project_map *map, const char *name)
 {
+    int            p101_call_result_1;
     struct module *module;
 
     P101_TRACE_SCOPE(env);
@@ -113,7 +134,8 @@ static struct module *p101_module_map_get_module(const struct p101_env *env, str
 
     for(size_t i = 0; i < map->module_count; i++)
     {
-        if(p101_strcmp(env, map->modules[i].name, name) == 0)
+        p101_call_result_1 = p101_strcmp(env, map->modules[i].name, name);
+        if(p101_call_result_1 == 0)
         {
             module = &map->modules[i];
             goto done;
@@ -228,6 +250,8 @@ done:
 
 void p101_module_map_add_function(const struct p101_env *env, struct p101_error *err, struct project_map *map, const struct source_file *file, const char *name, const char *usr, size_t line, bool is_static, bool is_header_declaration)
 {
+    int                     p101_expression_result_5;
+    size_t                  p101_call_result_6;
     struct function_record *function;
     struct module          *module;
 
@@ -237,7 +261,23 @@ void p101_module_map_add_function(const struct p101_env *env, struct p101_error 
         P101_ERROR_RAISE_USER(err, "Too many functions for p101-module-map.", ERR_USAGE);
         goto done;
     }
-    if(usr == NULL || p101_strlen(env, usr) >= sizeof(map->functions[0].usr))
+    if(usr == NULL)
+    {
+        p101_expression_result_5 = 1;
+    }
+    else
+    {
+        p101_call_result_6 = p101_strlen(env, usr);
+        if(p101_call_result_6 >= sizeof(map->functions[0].usr))
+        {
+            p101_expression_result_5 = 1;
+        }
+        else
+        {
+            p101_expression_result_5 = 0;
+        }
+    }
+    if(p101_expression_result_5)
     {
         P101_ERROR_RAISE_USER(err, "A resolved function identity is absent or too long for p101-module-map.", ERR_USAGE);
         goto done;

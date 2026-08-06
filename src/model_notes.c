@@ -8,6 +8,7 @@ static struct module *p101_module_map_get_note_module(const struct p101_env *env
 
 static struct module *p101_module_map_get_note_module(const struct p101_env *env, struct p101_error *err, struct project_map *map, const struct source_file *file)
 {
+    int            p101_call_result_1;
     struct module *module;
 
     P101_TRACE_SCOPE(env);
@@ -15,7 +16,8 @@ static struct module *p101_module_map_get_note_module(const struct p101_env *env
 
     for(size_t i = 0; i < map->module_count; i++)
     {
-        if(p101_strcmp(env, map->modules[i].name, file->module) == 0)
+        p101_call_result_1 = p101_strcmp(env, map->modules[i].name, file->module);
+        if(p101_call_result_1 == 0)
         {
             module = &map->modules[i];
             goto done;

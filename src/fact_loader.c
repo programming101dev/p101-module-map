@@ -18,13 +18,15 @@ static bool                p101_module_map_fact_line_is_complete(const struct p1
 
 static struct source_file *p101_module_map_find_fact_file(const struct p101_env *env, struct project_map *map, const char *path)
 {
+    int                 p101_call_result_1;
     struct source_file *file;
 
     P101_TRACE_SCOPE(env);
     file = NULL;
     for(size_t i = 0; i < map->file_count; i++)
     {
-        if(p101_strcmp(env, map->files[i].path, path) == 0)
+        p101_call_result_1 = p101_strcmp(env, map->files[i].path, path);
+        if(p101_call_result_1 == 0)
         {
             file = &map->files[i];
             goto done;
@@ -62,6 +64,8 @@ done:
 
 static void p101_module_map_apply_fact(const struct p101_env *env, struct p101_error *err, struct project_map *map, const struct p101_c_fact *fact)
 {
+    int                       p101_call_result_7;
+    int                       p101_call_result_6;
     const struct source_file *file;
 
     P101_TRACE_SCOPE(env);
@@ -112,16 +116,23 @@ static void p101_module_map_apply_fact(const struct p101_env *env, struct p101_e
             }
             break;
         case P101_C_FACT_KIND_NOTE:
-            if(p101_strcmp(env, fact->value, "ERROR_USE") == 0)
+        {
+            p101_call_result_6 = p101_strcmp(env, fact->value, "ERROR_USE");
+            if(p101_call_result_6 == 0)
             {
                 p101_module_map_note_error_use(env, err, map, file);
             }
-            else if(p101_strcmp(env, fact->value, "ERROR_CHECK") == 0)
+            else
             {
-                p101_module_map_note_error_use(env, err, map, file);
-                p101_module_map_note_error_check(env, err, map, file);
+                p101_call_result_7 = p101_strcmp(env, fact->value, "ERROR_CHECK");
+                if(p101_call_result_7 == 0)
+                {
+                    p101_module_map_note_error_use(env, err, map, file);
+                    p101_module_map_note_error_check(env, err, map, file);
+                }
             }
-            break;
+        }
+        break;
         default:
             break;
     }
@@ -135,21 +146,46 @@ done:
 
 static bool p101_module_map_fact_line_is_complete(const struct p101_env *env, struct p101_error *err, FILE *stream, char *line)
 {
-    bool   complete;
-    size_t length;
+    int         p101_expression_result_8;
+    const char *p101_call_result_9;
+    const char *p101_call_result_2;
+    char       *line_result;
+    bool        no_error;
+    bool        complete;
+    size_t      length;
 
     P101_TRACE_SCOPE(env);
     complete = true;
     length   = p101_strlen(env, line);
 
-    if(length == MAX_LINE - 1U && p101_strchr(env, line, '\n') == NULL)
+    p101_expression_result_8 = 0;
+    if(length == MAX_LINE - 1U)
+    {
+        p101_call_result_9 = p101_strchr(env, line, '\n');
+        if(p101_call_result_9 == NULL)
+        {
+            p101_expression_result_8 = 1;
+        }
+    }
+    if(p101_expression_result_8)
     {
         char discard[MAX_LINE];
 
         complete = false;
-        while(p101_error_has_no_error(err) && p101_fgets(env, err, discard, sizeof(discard), stream) != NULL)
+        for(;;)
         {
-            if(p101_strchr(env, discard, '\n') != NULL)
+            no_error = p101_error_has_no_error(err);
+            if(!no_error)
+            {
+                break;
+            }
+            line_result = p101_fgets(env, err, discard, sizeof(discard), stream);
+            if(line_result == NULL)
+            {
+                break;
+            }
+            p101_call_result_2 = p101_strchr(env, discard, '\n');
+            if(p101_call_result_2 != NULL)
             {
                 break;
             }
@@ -178,6 +214,14 @@ bool p101_module_map_test_fact_line_is_complete(const struct p101_env *env, stru
 
 void p101_module_map_load_clang_facts(const struct p101_env *env, struct p101_error *err, struct project_map *map, const struct arguments *args)
 {
+    int    p101_expression_result_10;
+    int    p101_expression_result_11;
+    bool   p101_call_result_12;
+    bool   p101_call_result_3;
+    bool   p101_call_result_4;
+    bool   p101_call_result_5;
+    char  *line_result;
+    bool   no_error;
     FILE  *stream;
     char   line[MAX_LINE];
     size_t fact_count;
@@ -197,12 +241,23 @@ void p101_module_map_load_clang_facts(const struct p101_env *env, struct p101_er
         goto done;
     }
 
-    while(p101_fgets(env, err, line, sizeof(line), stream) != NULL && p101_error_has_no_error(err))
+    for(;;)
     {
         struct p101_c_fact      fact;
         enum p101_c_fact_status status;
 
-        if(!p101_module_map_fact_line_is_complete(env, err, stream, line))
+        line_result = p101_fgets(env, err, line, sizeof(line), stream);
+        if(line_result == NULL)
+        {
+            break;
+        }
+        no_error = p101_error_has_no_error(err);
+        if(!no_error)
+        {
+            break;
+        }
+        p101_call_result_3 = p101_module_map_fact_line_is_complete(env, err, stream, line);
+        if(!p101_call_result_3)
         {
             continue;
         }
@@ -214,7 +269,8 @@ void p101_module_map_load_clang_facts(const struct p101_env *env, struct p101_er
         }
         if(status != P101_C_FACT_OK)
         {
-            if(p101_error_has_no_error(err))    // GCOVR_EXCL_BR_LINE -- parser errors already populate err
+            p101_call_result_4 = p101_error_has_no_error(err);
+            if(p101_call_result_4)    // GCOVR_EXCL_BR_LINE -- parser errors already populate err
             {
                 P101_ERROR_RAISE_USER(err, "The saved fact stream contains an invalid module fact record.", ERR_USAGE);
             }
@@ -228,7 +284,8 @@ void p101_module_map_load_clang_facts(const struct p101_env *env, struct p101_er
 done:
     if(stream != NULL)
     {
-        if(p101_error_has_error(err))
+        p101_call_result_5 = p101_error_has_error(err);
+        if(p101_call_result_5)
         {
             p101_fclose(env, P101_ERROR_OPTIONAL, stream);    // P101_ERROR_OPTIONAL rationale: cleanup preserves the fact-loading error.
         }
@@ -237,7 +294,24 @@ done:
             p101_fclose(env, err, stream);
         }
     }
-    if(args->facts_path != NULL && p101_error_has_no_error(err) && fact_count == 0U)
+    p101_expression_result_11 = 0;
+    if(args->facts_path != NULL)
+    {
+        p101_call_result_12 = p101_error_has_no_error(err);
+        if(p101_call_result_12)
+        {
+            p101_expression_result_11 = 1;
+        }
+    }
+    p101_expression_result_10 = 0;
+    if(p101_expression_result_11)
+    {
+        if(fact_count == 0U)
+        {
+            p101_expression_result_10 = 1;
+        }
+    }
+    if(p101_expression_result_10)
     {
         P101_ERROR_RAISE_USER(err, "The fact stream did not contain any p101 C facts.", ERR_USAGE);
     }
