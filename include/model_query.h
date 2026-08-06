@@ -12,6 +12,5 @@ bool p101_module_map_function_used_outside_module(const struct p101_env *env, co
 bool p101_module_map_function_has_non_static_definition(const struct p101_env *env, const struct project_map *map, const struct function_record *function);
 bool p101_module_map_symbol_used_outside_module(const struct p101_env *env, const struct project_map *map, const char *module_name, const char *symbol_name);
 bool p101_module_map_include_target_exists(const struct p101_env *env, const struct project_map *map, const char *target);
-bool p101_module_map_has_call_named(const struct p101_env *env, const struct project_map *map, const char *name);
 
 #endif    // P101_MODULE_MAP_MODEL_QUERY_H

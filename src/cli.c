@@ -201,7 +201,7 @@ void p101_module_map_usage(const struct p101_env *env, struct p101_error *err, c
     p101_fputs(env, err, "  -j                 Emit normalized JSON findings instead of Markdown\n", stderr);
     p101_fputs(env, err, "  -L                 Library mode: do not infer public API use from this repo alone\n", stderr);
     p101_fputs(env, err, "  -v                 Enable p101 tracing inside p101-module-map\n", stderr);
-    p101_fputs(env, err, "  -i <facts.tsv>     Read a reusable P101FACT v4 snapshot instead of invoking Clang\n", stderr);
+    p101_fputs(env, err, "  -i <facts.tsv>     Read a reusable P101FACT v6 snapshot instead of invoking Clang\n", stderr);
     p101_fputs(env, err, "  -o <report>        Write the report to a file instead of stdout\n", stderr);
     p101_fputs(env, err, "  -l <layers.txt>    Optional allowed include edges, one `module -> module` per line\n", stderr);
     p101_fputs(env, err, "  -m <count>         Warn when a module has more than this many functions; default 12\n", stderr);

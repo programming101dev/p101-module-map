@@ -52,23 +52,6 @@ bool p101_module_map_include_target_exists(const struct p101_env *env, const str
     return ret_val;
 }
 
-bool p101_module_map_has_call_named(const struct p101_env *env, const struct project_map *map, const char *name)
-{
-    bool ret_val;
-
-    ret_val = false;
-    for(size_t i = 0; i < map->call_count; i++)
-    {
-        if(p101_strcmp(env, map->calls[i].name, name) == 0)
-        {
-            ret_val = true;
-            break;
-        }
-    }
-
-    return ret_val;
-}
-
 bool p101_module_map_module_used_outside_module(const struct p101_env *env, const struct project_map *map, const char *module_name)
 {
     bool ret_val;
@@ -88,7 +71,18 @@ bool p101_module_map_module_used_outside_module(const struct p101_env *env, cons
 
 bool p101_module_map_function_used_outside_module(const struct p101_env *env, const struct project_map *map, const struct function_record *function)
 {
-    return p101_module_map_symbol_used_outside_module(env, map, function->module, function->name);
+    bool used;
+
+    used = false;
+    for(size_t index = 0U; index < map->call_count; index++)
+    {
+        if(p101_strcmp(env, map->calls[index].module, function->module) != 0 && function->usr[0] != '\0' && p101_strcmp(env, map->calls[index].usr, function->usr) == 0)
+        {
+            used = true;
+            break;
+        }
+    }
+    return used;
 }
 
 bool p101_module_map_function_has_header_declaration(const struct p101_env *env, const struct project_map *map, const struct function_record *function)
@@ -103,7 +97,7 @@ bool p101_module_map_function_has_header_declaration(const struct p101_env *env,
          * or a narrower interface whose basename differs from the
          * implementation file. C linkage is by symbol, not by filename.
          */
-        if(map->functions[i].is_header_declaration && p101_strcmp(env, map->functions[i].name, function->name) == 0)
+        if(map->functions[i].is_header_declaration && function->usr[0] != '\0' && p101_strcmp(env, map->functions[i].usr, function->usr) == 0)
         {
             ret_val = true;
             break;
@@ -120,7 +114,7 @@ bool p101_module_map_function_has_non_static_definition(const struct p101_env *e
     ret_val = false;
     for(size_t i = 0; i < map->function_count; i++)
     {
-        if(!map->functions[i].is_header_declaration && !map->functions[i].is_static && p101_strcmp(env, map->functions[i].name, function->name) == 0)
+        if(!map->functions[i].is_header_declaration && !map->functions[i].is_static && function->usr[0] != '\0' && p101_strcmp(env, map->functions[i].usr, function->usr) == 0)
         {
             ret_val = true;
             break;

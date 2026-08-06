@@ -170,15 +170,15 @@ static void test_public_function_requires_used_interface(void)
     p101_module_map_add_source_file(env, error, &map, source.path, source.is_header);
     p101_module_map_add_source_file(env, error, &map, header.path, header.is_header);
     p101_module_map_add_source_file(env, error, &map, caller.path, caller.is_header);
-    p101_module_map_add_function(env, error, &map, &source, "tool_run", 10, false, false);
-    p101_module_map_add_function(env, error, &map, &header, "tool_run", 5, false, true);
+    p101_module_map_add_function(env, error, &map, &source, "tool_run", "c:@F@tool_run", 10, false, false);
+    p101_module_map_add_function(env, error, &map, &header, "tool_run", "c:@F@tool_run", 5, false, true);
 
     function = &map.functions[0];
     TEST_ASSERT_TRUE(p101_module_map_function_has_header_declaration(env, &map, function));
     TEST_ASSERT_FALSE(p101_module_map_function_used_outside_module(env, &map, function));
 
     p101_module_map_add_include(env, error, &map, &caller, "tool.h", 3, true);
-    p101_module_map_add_call(env, error, &map, &caller, "tool_run", 4);
+    p101_module_map_add_call(env, error, &map, &caller, "tool_run", "c:@F@tool_run", 4);
     TEST_ASSERT_TRUE(p101_module_map_function_used_outside_module(env, &map, function));
     TEST_ASSERT_TRUE(p101_module_map_function_has_non_static_definition(env, &map, &map.functions[1]));
 }

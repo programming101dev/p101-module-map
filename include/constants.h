@@ -16,8 +16,6 @@ enum
     MAX_COMMAND           = 32768,
     MAX_SIGNATURE         = 8192,
     MAX_NAME              = 128,
-    P101_ERROR_HAS_LEN    = 15,
-    P101_ERROR_IS_LEN     = 14,
     BUILD_PREFIX_LEN      = 6,
     COVERAGE_PREFIX_LEN   = 9,
     PROFILE_PREFIX_LEN    = 8,

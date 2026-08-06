@@ -17,13 +17,16 @@ showing:
 - optional layer-rule violations;
 - modules that may be doing too much;
 - non-static functions that look like private helpers;
-- direct include cycles;
-- likely utility dumping grounds such as `util.c`.
+- direct include cycles.
 
 This is a teaching tool, not a proof engine. The C report generator no longer
 tries to parse C itself. `lib_c_facts` owns the Clang AST pass. A saved
 P101FACT stream remains available as an explicit replay input, so the module
 map keeps a real parser while its policy and report logic stay readable.
+The basename grouping is intentionally lexical because C has no module
+declaration for the AST to identify. Function, type, and call relationships
+within those presentation groups use declaration USRs; renaming a local
+variable cannot change a finding.
 
 Unreadable files, dangling symlinks, and missing optional layer files are skipped
 or treated as non-fatal. The tool should report the project shape it can see
@@ -69,7 +72,7 @@ The tool automatically uses the current project's Clang compilation database
 from `.last-build-dir` or `build-clang/compile_commands.json`. This preserves
 sibling-library include roots, feature-test macros, and other project flags.
 Use `-C` to select a different database explicitly.
-Use `-i` to consume an existing P101FACT v4 snapshot without starting another
+Use `-i` to consume an existing P101FACT v6 snapshot without starting another
 Clang AST pass. `-j` writes normalized findings with `id`, `severity`,
 `location`, `message`, and `evidence`.
 

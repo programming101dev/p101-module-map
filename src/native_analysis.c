@@ -11,7 +11,6 @@
 
 static bool                apply_record(const struct p101_env *env, struct p101_error *err, const struct p101_c_analysis_record *record, void *context);
 static struct source_file *file_for_record(const struct p101_env *env, struct p101_error *err, struct project_map *map, const struct p101_c_analysis_record *record);
-static void                note_call_semantics(const struct p101_env *env, struct p101_error *err, struct project_map *map, const struct source_file *file, const char *name);
 
 void p101_module_map_load_native_analysis(const struct p101_env *env, struct p101_error *err, struct project_map *map, const struct arguments *args)
 {
@@ -109,12 +108,11 @@ static bool apply_record(const struct p101_env *env, struct p101_error *err, con
             {
                 declaration = false;
             }
-            p101_module_map_add_function(env, err, map, file, record->name, record->line, record->is_static, declaration);
+            p101_module_map_add_function(env, err, map, file, record->name, record->usr, record->line, record->is_static, declaration);
             break;
         }
         case P101_C_ANALYSIS_CALL:
-            p101_module_map_add_call(env, err, map, file, record->name, record->line);
-            note_call_semantics(env, err, map, file, record->name);
+            p101_module_map_add_call(env, err, map, file, record->name, record->usr, record->line);
             break;
         case P101_C_ANALYSIS_TYPE:
         case P101_C_ANALYSIS_ENUM:
@@ -180,17 +178,4 @@ static struct source_file *file_for_record(const struct p101_env *env, struct p1
 
 done:
     return file;
-}
-
-static void note_call_semantics(const struct p101_env *env, struct p101_error *err, struct project_map *map, const struct source_file *file, const char *name)
-{
-    if(p101_strcmp(env, name, "p101_error_create") == 0 || p101_strcmp(env, name, "p101_error_destroy") == 0)
-    {
-        p101_module_map_note_error_use(env, err, map, file);
-    }
-    else if(p101_strncmp(env, name, "p101_error_has_", P101_ERROR_HAS_LEN) == 0 || p101_strncmp(env, name, "p101_error_is_", P101_ERROR_IS_LEN) == 0 || p101_strcmp(env, name, "p101_error_reset") == 0)
-    {
-        p101_module_map_note_error_use(env, err, map, file);
-        p101_module_map_note_error_check(env, err, map, file);
-    }
 }

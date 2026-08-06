@@ -88,11 +88,14 @@ static void test_queries_edges(void)
     map.include_count        = 2U;
     p101_module_map_copy_string(more_env, map.calls[0].module, sizeof(map.calls[0].module), "same");
     p101_module_map_copy_string(more_env, map.calls[0].name, sizeof(map.calls[0].name), "symbol");
+    p101_module_map_copy_string(more_env, map.calls[0].usr, sizeof(map.calls[0].usr), "c:@F@symbol");
     p101_module_map_copy_string(more_env, map.calls[1].module, sizeof(map.calls[1].module), "other");
     p101_module_map_copy_string(more_env, map.calls[1].name, sizeof(map.calls[1].name), "symbol");
+    p101_module_map_copy_string(more_env, map.calls[1].usr, sizeof(map.calls[1].usr), "c:@F@symbol");
     map.call_count = 2U;
     p101_module_map_copy_string(more_env, function.module, sizeof(function.module), "same");
     p101_module_map_copy_string(more_env, function.name, sizeof(function.name), "symbol");
+    p101_module_map_copy_string(more_env, function.usr, sizeof(function.usr), "c:@F@symbol");
 
     TEST_ASSERT_TRUE(p101_module_map_module_has_direct_include(more_env, &map, "same", "target"));
     TEST_ASSERT_FALSE(p101_module_map_module_has_direct_include(more_env, &map, "same", "missing"));
@@ -100,8 +103,6 @@ static void test_queries_edges(void)
     TEST_ASSERT_FALSE(p101_module_map_symbol_used_outside_module(more_env, &map, "same", "missing"));
     TEST_ASSERT_TRUE(p101_module_map_include_target_exists(more_env, &map, "target"));
     TEST_ASSERT_FALSE(p101_module_map_include_target_exists(more_env, &map, "missing"));
-    TEST_ASSERT_TRUE(p101_module_map_has_call_named(more_env, &map, "symbol"));
-    TEST_ASSERT_FALSE(p101_module_map_has_call_named(more_env, &map, "missing"));
     TEST_ASSERT_TRUE(p101_module_map_module_used_outside_module(more_env, &map, "target"));
     TEST_ASSERT_FALSE(p101_module_map_module_used_outside_module(more_env, &map, "same"));
     TEST_ASSERT_TRUE(p101_module_map_function_used_outside_module(more_env, &map, &function));
@@ -120,18 +121,18 @@ static void test_queries_edges(void)
     TEST_ASSERT_TRUE(p101_module_map_function_has_header_declaration(more_env, &map, &function));
     TEST_ASSERT_TRUE(p101_module_map_function_has_non_static_definition(more_env, &map, &function));
 
-    p101_module_map_copy_string(more_env, map.functions[0].name, sizeof(map.functions[0].name), "other");
+    p101_module_map_copy_string(more_env, map.functions[0].usr, sizeof(map.functions[0].usr), "c:@F@other");
     TEST_ASSERT_FALSE(p101_module_map_function_has_header_declaration(more_env, &map, &function));
-    p101_module_map_copy_string(more_env, map.functions[0].name, sizeof(map.functions[0].name), function.name);
+    p101_module_map_copy_string(more_env, map.functions[0].usr, sizeof(map.functions[0].usr), function.usr);
     p101_module_map_copy_string(more_env, map.functions[0].module, sizeof(map.functions[0].module), "other");
     TEST_ASSERT_TRUE(p101_module_map_function_has_header_declaration(more_env, &map, &function));
     map.functions[0].is_header_declaration = false;
     map.functions[0].is_static             = true;
     map.functions[2].is_static             = true;
     map.functions[1].is_static             = false;
-    p101_module_map_copy_string(more_env, map.functions[1].name, sizeof(map.functions[1].name), "other");
+    p101_module_map_copy_string(more_env, map.functions[1].usr, sizeof(map.functions[1].usr), "c:@F@other");
     TEST_ASSERT_FALSE(p101_module_map_function_has_non_static_definition(more_env, &map, &function));
-    p101_module_map_copy_string(more_env, map.functions[1].name, sizeof(map.functions[1].name), function.name);
+    p101_module_map_copy_string(more_env, map.functions[1].usr, sizeof(map.functions[1].usr), function.usr);
     p101_module_map_copy_string(more_env, map.functions[1].module, sizeof(map.functions[1].module), "other");
     TEST_ASSERT_TRUE(p101_module_map_function_has_non_static_definition(more_env, &map, &function));
 }
@@ -170,7 +171,7 @@ static void test_notes_and_limits(void)
     p101_module_map_copy_string(more_env, file.module, sizeof(file.module), "new");
     p101_module_map_add_include(more_env, more_error, &map, &file, "x.h", 1U, true);
     reset_error();
-    p101_module_map_add_function(more_env, more_error, &map, &file, "f", 1U, false, false);
+    p101_module_map_add_function(more_env, more_error, &map, &file, "f", "c:@F@f", 1U, false, false);
     reset_error();
     p101_module_map_add_macro(more_env, more_error, &map, &file, "M", 1U);
     reset_error();
@@ -190,10 +191,10 @@ static void test_notes_and_limits(void)
         map.field = 0U;                                                                                                                                                                                                                                            \
     } while(0)
     TEST_LIMIT(include_count, MAX_INCLUDES, p101_module_map_add_include(more_env, more_error, &map, &file, "x.h", 1U, true));
-    TEST_LIMIT(function_count, MAX_FUNCTIONS, p101_module_map_add_function(more_env, more_error, &map, &file, "f", 1U, false, false));
+    TEST_LIMIT(function_count, MAX_FUNCTIONS, p101_module_map_add_function(more_env, more_error, &map, &file, "f", "c:@F@f", 1U, false, false));
     TEST_LIMIT(macro_count, MAX_MACROS, p101_module_map_add_macro(more_env, more_error, &map, &file, "M", 1U));
     TEST_LIMIT(type_count, MAX_TYPES, p101_module_map_add_type(more_env, more_error, &map, &file, "T", 1U));
-    TEST_LIMIT(call_count, MAX_CALLS, p101_module_map_add_call(more_env, more_error, &map, &file, "f", 1U));
+    TEST_LIMIT(call_count, MAX_CALLS, p101_module_map_add_call(more_env, more_error, &map, &file, "f", "c:@F@f", 1U));
 #undef TEST_LIMIT
     TEST_ASSERT_EQUAL_UINT64(1U, map.calls_dropped);
 }
@@ -277,11 +278,18 @@ static void test_fact_loader_internals(void)
     p101_module_map_test_apply_fact(more_env, more_error, &map, NULL);
 
     fact.value = "value";
+    fact.usr   = "c:@F@value";
     for(int kind = P101_C_FACT_KIND_UNKNOWN; kind <= P101_C_FACT_KIND_MACRO; kind++)
     {
         fact.kind = (enum p101_c_fact_kind)kind;
         p101_module_map_test_apply_fact(more_env, more_error, &map, &fact);
     }
+    fact.kind = P101_C_FACT_KIND_CALL;
+    fact.usr  = NULL;
+    p101_module_map_test_apply_fact(more_env, more_error, &map, &fact);
+    TEST_ASSERT_TRUE(p101_error_has_error(more_error));
+    reset_error();
+    fact.usr   = "c:@F@value";
     fact.kind  = P101_C_FACT_KIND_NOTE;
     fact.value = "ERROR_USE";
     p101_module_map_test_apply_fact(more_env, more_error, &map, &fact);
@@ -368,7 +376,7 @@ static void test_fact_loader_io_failures(void)
 
     fd     = p101_mkstemp(more_env, more_error, path);
     stream = p101_fdopen(more_env, more_error, fd, "w");
-    p101_fputs(more_env, more_error, "P101FACT\t4\tFILE\tsrc/x.c\tx\t0\t1\n", stream);
+    p101_fputs(more_env, more_error, "P101FACT\t6\tFILE\tsrc/x.c\tx\t0\t1\n", stream);
     p101_fclose(more_env, more_error, stream);
     p101_memset(more_env, &args, 0, sizeof(args));
     args.facts_path = path;

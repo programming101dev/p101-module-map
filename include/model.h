@@ -37,6 +37,7 @@ struct module
 struct function_record
 {
     char   name[MAX_NAME];
+    char   usr[MAX_NAME];
     char   module[MAX_NAME];
     char   path[PATH_LEN];
     size_t line;
@@ -72,6 +73,7 @@ struct type_record
 struct call_record
 {
     char   name[MAX_NAME];
+    char   usr[MAX_NAME];
     char   module[MAX_NAME];
     char   path[PATH_LEN];
     size_t line;

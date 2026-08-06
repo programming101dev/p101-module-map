@@ -226,7 +226,7 @@ done:
     return;
 }
 
-void p101_module_map_add_function(const struct p101_env *env, struct p101_error *err, struct project_map *map, const struct source_file *file, const char *name, size_t line, bool is_static, bool is_header_declaration)
+void p101_module_map_add_function(const struct p101_env *env, struct p101_error *err, struct project_map *map, const struct source_file *file, const char *name, const char *usr, size_t line, bool is_static, bool is_header_declaration)
 {
     struct function_record *function;
     struct module          *module;
@@ -235,6 +235,11 @@ void p101_module_map_add_function(const struct p101_env *env, struct p101_error 
     if(map->function_count >= MAX_FUNCTIONS)
     {
         P101_ERROR_RAISE_USER(err, "Too many functions for p101-module-map.", ERR_USAGE);
+        goto done;
+    }
+    if(usr == NULL || p101_strlen(env, usr) >= sizeof(map->functions[0].usr))
+    {
+        P101_ERROR_RAISE_USER(err, "A resolved function identity is absent or too long for p101-module-map.", ERR_USAGE);
         goto done;
     }
 
@@ -246,6 +251,7 @@ void p101_module_map_add_function(const struct p101_env *env, struct p101_error 
 
     function = &map->functions[map->function_count++];
     p101_module_map_copy_string(env, function->name, sizeof(function->name), name);
+    p101_module_map_copy_string(env, function->usr, sizeof(function->usr), usr);
     p101_module_map_copy_string(env, function->module, sizeof(function->module), file->module);
     p101_module_map_copy_string(env, function->path, sizeof(function->path), file->path);
     function->line                  = line;
@@ -331,20 +337,32 @@ done:
     return;
 }
 
-void p101_module_map_add_call(const struct p101_env *env, struct p101_error *err, struct project_map *map, const struct source_file *file, const char *name, size_t line)
+void p101_module_map_add_call(const struct p101_env *env, struct p101_error *err, struct project_map *map, const struct source_file *file, const char *name, const char *usr, size_t line)
 {
     struct call_record *call;
+    size_t              usr_length;
 
     P101_TRACE_SCOPE(env);
+    usr_length = 0U;
     if(map->call_count >= MAX_CALLS)
     {
         map->calls_dropped++;
         P101_ERROR_RAISE_USER(err, "Too many call facts for p101-module-map; refusing an incomplete analysis.", ERR_USAGE);
         goto done;
     }
+    if(usr != NULL)
+    {
+        usr_length = p101_strlen(env, usr);
+    }
+    if(name == NULL || usr == NULL || usr_length >= sizeof(map->calls[0].usr))
+    {
+        P101_ERROR_RAISE_USER(err, "A resolved call identity is absent or too long for p101-module-map.", ERR_USAGE);
+        goto done;
+    }
 
     call = &map->calls[map->call_count++];
     p101_module_map_copy_string(env, call->name, sizeof(call->name), name);
+    p101_module_map_copy_string(env, call->usr, sizeof(call->usr), usr);
     p101_module_map_copy_string(env, call->module, sizeof(call->module), file->module);
     p101_module_map_copy_string(env, call->path, sizeof(call->path), file->path);
     call->line      = line;

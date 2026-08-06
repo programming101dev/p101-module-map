@@ -13,7 +13,6 @@
 
 static struct source_file *p101_module_map_find_fact_file(const struct p101_env *env, struct project_map *map, const char *path);
 static struct source_file *p101_module_map_file_for_fact(const struct p101_env *env, struct p101_error *err, struct project_map *map, const struct p101_c_fact *fact);
-static void                p101_module_map_note_call_semantics(const struct p101_env *env, struct p101_error *err, struct project_map *map, const struct source_file *file, const char *name);
 static void                p101_module_map_apply_fact(const struct p101_env *env, struct p101_error *err, struct project_map *map, const struct p101_c_fact *fact);
 static bool                p101_module_map_fact_line_is_complete(const struct p101_env *env, struct p101_error *err, FILE *stream, char *line);
 
@@ -61,20 +60,6 @@ done:
     return file;
 }
 
-static void p101_module_map_note_call_semantics(const struct p101_env *env, struct p101_error *err, struct project_map *map, const struct source_file *file, const char *name)
-{
-    P101_TRACE_SCOPE(env);
-    if(p101_strcmp(env, name, "p101_error_create") == 0 || p101_strcmp(env, name, "p101_error_destroy") == 0)
-    {
-        p101_module_map_note_error_use(env, err, map, file);
-    }
-    else if(p101_strncmp(env, name, "p101_error_has_", P101_ERROR_HAS_LEN) == 0 || p101_strncmp(env, name, "p101_error_is_", P101_ERROR_IS_LEN) == 0 || p101_strcmp(env, name, "p101_error_reset") == 0)
-    {
-        p101_module_map_note_error_use(env, err, map, file);
-        p101_module_map_note_error_check(env, err, map, file);
-    }
-}
-
 static void p101_module_map_apply_fact(const struct p101_env *env, struct p101_error *err, struct project_map *map, const struct p101_c_fact *fact)
 {
     const struct source_file *file;
@@ -101,14 +86,13 @@ static void p101_module_map_apply_fact(const struct p101_env *env, struct p101_e
         case P101_C_FACT_KIND_FILE:
             break;
         case P101_C_FACT_KIND_INCLUDE:
-            p101_module_map_add_include(env, err, map, file, fact->value, fact->line, fact->flag1);
+            p101_module_map_add_include(env, err, map, file, fact->value, fact->line, fact->is_local);
             break;
         case P101_C_FACT_KIND_FUNCTION:
-            p101_module_map_add_function(env, err, map, file, fact->value, fact->line, fact->flag1, fact->flag2);
+            p101_module_map_add_function(env, err, map, file, fact->value, fact->usr, fact->line, fact->is_static, fact->is_declaration);
             break;
         case P101_C_FACT_KIND_CALL:
-            p101_module_map_add_call(env, err, map, file, fact->value, fact->line);
-            p101_module_map_note_call_semantics(env, err, map, file, fact->value);
+            p101_module_map_add_call(env, err, map, file, fact->value, fact->usr, fact->line);
             break;
         case P101_C_FACT_KIND_TYPE:
         case P101_C_FACT_KIND_ENUM:
@@ -117,7 +101,15 @@ static void p101_module_map_apply_fact(const struct p101_env *env, struct p101_e
         case P101_C_FACT_KIND_ENUMERATOR:
             break;
         case P101_C_FACT_KIND_MACRO:
-            p101_module_map_add_macro(env, err, map, file, fact->value, fact->line);
+            /*
+             * The fact stream also contains source-level macro expansions so
+             * policy tools can associate them with their enclosing function.
+             * A module's declared macro surface contains definitions only.
+             */
+            if(fact->is_definition)
+            {
+                p101_module_map_add_macro(env, err, map, file, fact->value, fact->line);
+            }
             break;
         case P101_C_FACT_KIND_NOTE:
             if(p101_strcmp(env, fact->value, "ERROR_USE") == 0)
@@ -238,7 +230,7 @@ done:
     {
         if(p101_error_has_error(err))
         {
-            p101_fclose(env, NULL, stream);    // P101_ERROR_CONTRACT_ALLOW_NO_ERROR: cleanup preserves the fact-loading error.
+            p101_fclose(env, P101_ERROR_OPTIONAL, stream);    // P101_ERROR_OPTIONAL rationale: cleanup preserves the fact-loading error.
         }
         else
         {

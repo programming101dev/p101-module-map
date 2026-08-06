@@ -12,7 +12,7 @@
 static bool p101_module_map_layer_allows_include(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const char *from_module, const char *target);
 static bool p101_module_map_module_has_source(const struct p101_env *env, const struct project_map *map, const char *module_name);
 static bool p101_module_map_module_has_unmatched_public_definition(const struct p101_env *env, const struct project_map *map, const char *module_name);
-static bool p101_module_map_is_utility_module(const struct p101_env *env, const char *module_name);
+static bool p101_module_map_module_contains_entrypoint(const struct p101_env *env, const struct project_map *map, const char *module_name);
 static void p101_module_map_write_finding(const struct p101_env *env, struct p101_error *err, FILE *stream, const struct arguments *args, bool *first_json, size_t *finding_count, const char *id, const char *path, size_t line, const char *format, ...)
     P101_ATTR_PRINTF(10, 11);
 static void p101_module_map_write_json_string(const struct p101_env *env, struct p101_error *err, FILE *stream, const char *text);
@@ -43,7 +43,7 @@ static bool p101_module_map_module_has_unmatched_public_definition(const struct 
         const struct function_record *function;
 
         function = &map->functions[i];
-        if(!function->is_header_declaration && !function->is_static && p101_strcmp(env, function->module, module_name) == 0 && p101_strcmp(env, function->name, "main") != 0 && !p101_module_map_function_has_header_declaration(env, map, function))
+        if(!function->is_header_declaration && !function->is_static && p101_strcmp(env, function->module, module_name) == 0 && p101_strcmp(env, function->usr, "c:@F@main") != 0 && !p101_module_map_function_has_header_declaration(env, map, function))
         {
             has_unmatched = true;
             break;
@@ -52,20 +52,20 @@ static bool p101_module_map_module_has_unmatched_public_definition(const struct 
     return has_unmatched;
 }
 
-static bool p101_module_map_is_utility_module(const struct p101_env *env, const char *module_name)
+static bool p101_module_map_module_contains_entrypoint(const struct p101_env *env, const struct project_map *map, const char *module_name)
 {
-    bool is_utility;
+    bool contains_entrypoint;
 
-    if(p101_strcmp(env, module_name, "util") == 0)
+    contains_entrypoint = false;
+    for(size_t index = 0U; index < map->function_count; index++)
     {
-        is_utility = true;
+        if(p101_strcmp(env, map->functions[index].module, module_name) == 0 && p101_strcmp(env, map->functions[index].usr, "c:@F@main") == 0)
+        {
+            contains_entrypoint = true;
+            break;
+        }
     }
-    else
-    {
-        is_utility = p101_strcmp(env, module_name, "utils") == 0;
-    }
-
-    return is_utility;
+    return contains_entrypoint;
 }
 
 static bool p101_module_map_layer_allows_include(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const char *from_module, const char *target)
@@ -250,7 +250,7 @@ bool p101_module_map_write_findings(const struct p101_env *env, struct p101_erro
         const struct module *module;
 
         module = &map->modules[i];
-        if(module->source_count > 0U && module->header_count == 0U && p101_strcmp(env, module->name, "main") != 0 && p101_module_map_module_has_unmatched_public_definition(env, map, module->name))
+        if(module->source_count > 0U && module->header_count == 0U && !p101_module_map_module_contains_entrypoint(env, map, module->name) && p101_module_map_module_has_unmatched_public_definition(env, map, module->name))
         {
             p101_module_map_write_finding(env,
                                           err,
@@ -289,7 +289,7 @@ bool p101_module_map_write_findings(const struct p101_env *env, struct p101_erro
             wrote = true;
         }
 
-        if(!args->library_mode && p101_strcmp(env, module->name, "main") == 0 && module->function_count > 3U)
+        if(!args->library_mode && p101_module_map_module_contains_entrypoint(env, map, module->name) && module->function_count > 3U)
         {
             p101_module_map_write_finding(env,
                                           err,
@@ -298,16 +298,10 @@ bool p101_module_map_write_findings(const struct p101_env *env, struct p101_erro
                                           &first_json,
                                           &finding_count,
                                           "P101-MOD-004",
-                                          "main.c",
+                                          module->source_path,
                                           0U,
                                           "`main` has %zu functions. Students usually do better when `main.c` only wires argument parsing, setup, and top-level control flow.",
                                           module->function_count);
-            wrote = true;
-        }
-
-        if(!args->library_mode && p101_module_map_is_utility_module(env, module->name) && module->function_count > 4U)
-        {
-            p101_module_map_write_finding(env, err, stream, args, &first_json, &finding_count, "P101-MOD-005", module->name, 0U, "`%s` looks like a utility dumping ground. Try naming modules after responsibilities instead.", module->name);
             wrote = true;
         }
     }
@@ -318,7 +312,7 @@ bool p101_module_map_write_findings(const struct p101_env *env, struct p101_erro
 
         function = &map->functions[i];
         if(!args->library_mode && !function->is_header_declaration && !function->is_static && !p101_module_map_function_has_header_declaration(env, map, function) && !p101_module_map_function_used_outside_module(env, map, function) &&
-           p101_strcmp(env, function->name, "main") != 0)
+           p101_strcmp(env, function->usr, "c:@F@main") != 0)
         {
             p101_module_map_write_finding(env,
                                           err,
@@ -350,7 +344,7 @@ bool p101_module_map_write_findings(const struct p101_env *env, struct p101_erro
             wrote = true;
         }
 
-        if(!args->library_mode && function->is_header_declaration && !p101_module_map_module_used_outside_module(env, map, function->module) && p101_strcmp(env, function->module, "main") != 0)
+        if(!args->library_mode && function->is_header_declaration && !p101_module_map_module_used_outside_module(env, map, function->module) && !p101_module_map_module_contains_entrypoint(env, map, function->module))
         {
             p101_module_map_write_finding(env,
                                           err,
@@ -514,7 +508,7 @@ static void p101_module_map_write_finding(const struct p101_env *env, struct p10
         p101_module_map_write_json_string(env, err, stream, path);
         p101_fprintf(env, err, stream, ",\"line\":%zu},\"message\":", line);
         p101_module_map_write_json_string(env, err, stream, message);
-        p101_fputs(env, err, ",\"evidence\":{\"fact_schema\":\"P101FACT-v4\"}}", stream);
+        p101_fputs(env, err, ",\"evidence\":{\"fact_schema\":\"P101FACT-v6\"}}", stream);
     }
     else
     {
