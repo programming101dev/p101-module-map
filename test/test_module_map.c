@@ -177,7 +177,7 @@ static void test_public_function_requires_used_interface(void)
     TEST_ASSERT_TRUE(p101_module_map_function_has_header_declaration(env, &map, function));
     TEST_ASSERT_FALSE(p101_module_map_function_used_outside_module(env, &map, function));
 
-    p101_module_map_add_include(env, error, &map, &caller, "tool.h", 3, true);
+    p101_module_map_add_include(env, error, &map, &caller, "tool.h", NULL, 3, true);
     p101_module_map_add_call(env, error, &map, &caller, "tool_run", "c:@F@tool_run", 4);
     TEST_ASSERT_TRUE(p101_module_map_function_used_outside_module(env, &map, function));
     TEST_ASSERT_TRUE(p101_module_map_function_has_non_static_definition(env, &map, &map.functions[1]));
@@ -193,40 +193,40 @@ static void test_explicit_relative_include_resolves_from_source_module(void)
     p101_module_map_copy_string(env, source.path, sizeof(source.path), "src/arpa/inet.c");
     p101_module_map_copy_string(env, source.module, sizeof(source.module), "arpa/inet");
 
-    p101_module_map_add_include(env, error, &map, &source, "../p101_posix_internal.h", 17U, true);
+    p101_module_map_add_include(env, error, &map, &source, "../p101_posix_internal.h", NULL, 17U, true);
 
     TEST_ASSERT_FALSE(p101_error_has_error(error));
     TEST_ASSERT_EQUAL_UINT64(1U, map.include_count);
     TEST_ASSERT_EQUAL_STRING("posix_internal", map.includes[0].target);
 
-    p101_module_map_add_include(env, error, &map, &source, "./p101_local.h", 18U, true);
+    p101_module_map_add_include(env, error, &map, &source, "./p101_local.h", NULL, 18U, true);
     TEST_ASSERT_EQUAL_STRING("arpa/local", map.includes[1].target);
 
     p101_module_map_copy_string(env, source.module, sizeof(source.module), "one/two/main");
-    p101_module_map_add_include(env, error, &map, &source, "../p101_sibling.h", 19U, true);
+    p101_module_map_add_include(env, error, &map, &source, "../p101_sibling.h", NULL, 19U, true);
     TEST_ASSERT_EQUAL_STRING("one/sibling", map.includes[2].target);
 
     p101_module_map_copy_string(env, source.module, sizeof(source.module), "main");
-    p101_module_map_add_include(env, error, &map, &source, "./p101_local.h", 20U, true);
+    p101_module_map_add_include(env, error, &map, &source, "./p101_local.h", NULL, 20U, true);
     TEST_ASSERT_EQUAL_STRING("local", map.includes[3].target);
-    p101_module_map_add_include(env, error, &map, &source, "../p101_outside.h", 21U, true);
+    p101_module_map_add_include(env, error, &map, &source, "../p101_outside.h", NULL, 21U, true);
     TEST_ASSERT_EQUAL_STRING("../outside", map.includes[4].target);
-    p101_module_map_add_include(env, error, &map, &source, "../../p101_outside.h", 22U, true);
+    p101_module_map_add_include(env, error, &map, &source, "../../p101_outside.h", NULL, 22U, true);
     TEST_ASSERT_EQUAL_STRING("../../outside", map.includes[5].target);
-    p101_module_map_add_include(env, error, &map, &source, "./", 23U, true);
+    p101_module_map_add_include(env, error, &map, &source, "./", NULL, 23U, true);
     TEST_ASSERT_EQUAL_STRING("", map.includes[6].target);
-    p101_module_map_add_include(env, error, &map, &source, "./x", 24U, true);
+    p101_module_map_add_include(env, error, &map, &source, "./x", NULL, 24U, true);
     TEST_ASSERT_EQUAL_STRING("x", map.includes[7].target);
-    p101_module_map_add_include(env, error, &map, &source, "./ab", 25U, true);
+    p101_module_map_add_include(env, error, &map, &source, "./ab", NULL, 25U, true);
     TEST_ASSERT_EQUAL_STRING("ab", map.includes[8].target);
-    p101_module_map_add_include(env, error, &map, &source, "./.x/file.h", 26U, true);
+    p101_module_map_add_include(env, error, &map, &source, "./.x/file.h", NULL, 26U, true);
     TEST_ASSERT_EQUAL_STRING(".x/file", map.includes[9].target);
 
     p101_module_map_copy_string(env, source.module, sizeof(source.module), "ab/main");
-    p101_module_map_add_include(env, error, &map, &source, "../file.h", 27U, true);
+    p101_module_map_add_include(env, error, &map, &source, "../file.h", NULL, 27U, true);
     TEST_ASSERT_EQUAL_STRING("file", map.includes[10].target);
     p101_module_map_copy_string(env, source.module, sizeof(source.module), ".x/main");
-    p101_module_map_add_include(env, error, &map, &source, "../file.h", 28U, true);
+    p101_module_map_add_include(env, error, &map, &source, "../file.h", NULL, 28U, true);
     TEST_ASSERT_EQUAL_STRING("file", map.includes[11].target);
 }
 
