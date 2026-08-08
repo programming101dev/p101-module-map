@@ -50,6 +50,7 @@ struct include_record
     char   from_module[MAX_NAME];
     char   target[MAX_NAME];
     char   path[PATH_LEN];
+    char   resolved[PATH_LEN]; /* Resolved file, empty when unresolved; target stays a module name. */
     size_t line;
     bool   is_local;
 };

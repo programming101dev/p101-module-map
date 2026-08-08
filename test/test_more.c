@@ -193,7 +193,7 @@ static void test_notes_and_limits(void)
     TEST_ASSERT_TRUE(p101_error_has_error(more_error));
     reset_error();
     p101_module_map_copy_string(more_env, file.module, sizeof(file.module), "new");
-    p101_module_map_add_include(more_env, more_error, &map, &file, "x.h", 1U, true);
+    p101_module_map_add_include(more_env, more_error, &map, &file, "x.h", "/tmp/x.h", 1U, true);
     reset_error();
     p101_module_map_add_function(more_env, more_error, &map, &file, "f", "c:@F@f", 1U, false, false);
     reset_error();
@@ -214,7 +214,7 @@ static void test_notes_and_limits(void)
         reset_error();                                                                                                                                                                                                                                             \
         map.field = 0U;                                                                                                                                                                                                                                            \
     } while(0)
-    TEST_LIMIT(include_count, MAX_INCLUDES, p101_module_map_add_include(more_env, more_error, &map, &file, "x.h", 1U, true));
+    TEST_LIMIT(include_count, MAX_INCLUDES, p101_module_map_add_include(more_env, more_error, &map, &file, "x.h", "/tmp/x.h", 1U, true));
     TEST_LIMIT(function_count, MAX_FUNCTIONS, p101_module_map_add_function(more_env, more_error, &map, &file, "f", "c:@F@f", 1U, false, false));
     TEST_LIMIT(macro_count, MAX_MACROS, p101_module_map_add_macro(more_env, more_error, &map, &file, "M", 1U));
     TEST_LIMIT(type_count, MAX_TYPES, p101_module_map_add_type(more_env, more_error, &map, &file, "T", 1U));
@@ -400,7 +400,7 @@ static void test_fact_loader_io_failures(void)
 
     fd     = p101_mkstemp(more_env, more_error, path);
     stream = p101_fdopen(more_env, more_error, fd, "w");
-    p101_fputs(more_env, more_error, "P101FACT\t6\tFILE\tsrc/x.c\tx\t0\t1\n", stream);
+    p101_fputs(more_env, more_error, "P101FACT\t7\tFILE\tsrc/x.c\tx\t0\t1\n", stream);
     p101_fclose(more_env, more_error, stream);
     p101_memset(more_env, &args, 0, sizeof(args));
     args.facts_path = path;

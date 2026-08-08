@@ -19,12 +19,13 @@ static void p101_module_map_write_json_string(const struct p101_env *env, struct
 
 static bool p101_module_map_module_has_source(const struct p101_env *env, const struct project_map *map, const char *module_name)
 {
-    int  p101_call_result_1;
     bool has_source;
 
     has_source = false;
     for(size_t i = 0U; i < map->module_count; i++)
     {
+        int p101_call_result_1;
+
         p101_call_result_1 = p101_strcmp(env, map->modules[i].name, module_name);
         if(p101_call_result_1 == 0)
         {
@@ -37,10 +38,6 @@ static bool p101_module_map_module_has_source(const struct p101_env *env, const 
 
 static bool p101_module_map_module_has_unmatched_public_definition(const struct p101_env *env, const struct project_map *map, const char *module_name)
 {
-    int  p101_expression_result_8;
-    int  p101_expression_result_9;
-    int  p101_expression_result_10;
-    int  p101_expression_result_11;
     int  p101_call_result_12;
     int  p101_call_result_13;
     bool p101_call_result_14;
@@ -50,6 +47,10 @@ static bool p101_module_map_module_has_unmatched_public_definition(const struct 
     for(size_t i = 0U; i < map->function_count; i++)
     {
         const struct function_record *function;
+        int                           p101_expression_result_8;
+        int                           p101_expression_result_9;
+        int                           p101_expression_result_10;
+        int                           p101_expression_result_11;
 
         function                  = &map->functions[i];
         p101_expression_result_11 = 0;
@@ -98,14 +99,15 @@ static bool p101_module_map_module_has_unmatched_public_definition(const struct 
 
 static bool p101_module_map_module_contains_entrypoint(const struct p101_env *env, const struct project_map *map, const char *module_name)
 {
-    int  p101_expression_result_15;
-    int  p101_call_result_16;
     int  p101_call_result_17;
     bool contains_entrypoint;
 
     contains_entrypoint = false;
     for(size_t index = 0U; index < map->function_count; index++)
     {
+        int p101_expression_result_15;
+        int p101_call_result_16;
+
         p101_call_result_16       = p101_strcmp(env, map->functions[index].module, module_name);
         p101_expression_result_15 = 0;
         if(p101_call_result_16 == 0)
@@ -127,15 +129,15 @@ static bool p101_module_map_module_contains_entrypoint(const struct p101_env *en
 
 static bool p101_module_map_layer_allows_include(const struct p101_env *env, struct p101_error *err, const struct arguments *args, const char *from_module, const char *target)
 {
-    int   p101_expression_result_18;
-    int   p101_call_result_19;
-    int   p101_call_result_20;
-    int   p101_call_result_2;
-    FILE *stream;
-    bool  ret_val;
-    char  line[MAX_LINE];
-    bool  no_error;
-    char *line_result;
+    int         p101_expression_result_18;
+    int         p101_call_result_19;
+    int         p101_call_result_20;
+    int         p101_call_result_2;
+    FILE       *stream;
+    bool        ret_val;
+    char        line[MAX_LINE];
+    bool        no_error;
+    const char *line_result;
 
     ret_val = true;
     stream  = NULL;
@@ -312,44 +314,22 @@ void p101_module_map_write_include_graph(const struct p101_env *env, struct p101
 
 bool p101_module_map_write_findings(const struct p101_env *env, struct p101_error *err, FILE *stream, const struct arguments *args, const struct project_map *map)
 {
-    int    p101_expression_result_21;
-    int    p101_expression_result_22;
-    int    p101_expression_result_23;
     bool   p101_call_result_24;
     bool   p101_call_result_25;
-    int    p101_expression_result_26;
-    int    p101_expression_result_27;
     bool   p101_call_result_28;
-    int    p101_expression_result_29;
-    int    p101_expression_result_30;
-    int    p101_expression_result_31;
-    int    p101_expression_result_32;
-    int    p101_expression_result_33;
     bool   p101_call_result_34;
     bool   p101_call_result_35;
     int    p101_call_result_36;
-    int    p101_expression_result_37;
-    int    p101_expression_result_38;
     int    p101_expression_result_39;
     bool   p101_call_result_40;
     bool   p101_call_result_41;
-    int    p101_expression_result_42;
-    int    p101_expression_result_43;
-    int    p101_expression_result_44;
     bool   p101_call_result_45;
     bool   p101_call_result_46;
-    int    p101_expression_result_47;
-    bool   p101_call_result_48;
     bool   p101_call_result_49;
-    int    p101_expression_result_50;
-    int    p101_expression_result_51;
     bool   p101_call_result_52;
     int    p101_call_result_53;
-    int    p101_expression_result_54;
     bool   p101_call_result_55;
-    int    p101_expression_result_56;
     bool   p101_call_result_57;
-    bool   p101_call_result_3;
     bool   wrote;
     bool   first_json;
     size_t finding_count;
@@ -370,6 +350,11 @@ bool p101_module_map_write_findings(const struct p101_env *env, struct p101_erro
     for(size_t i = 0; i < map->module_count; i++)
     {
         const struct module *module;
+        int                  p101_expression_result_21;
+        int                  p101_expression_result_22;
+        int                  p101_expression_result_23;
+        int                  p101_expression_result_26;
+        int                  p101_expression_result_27;
 
         module                    = &map->modules[i];
         p101_expression_result_23 = 0;
@@ -474,6 +459,16 @@ bool p101_module_map_write_findings(const struct p101_env *env, struct p101_erro
     for(size_t i = 0; i < map->function_count; i++)
     {
         const struct function_record *function;
+        int                           p101_expression_result_29;
+        int                           p101_expression_result_30;
+        int                           p101_expression_result_31;
+        int                           p101_expression_result_32;
+        int                           p101_expression_result_33;
+        int                           p101_expression_result_37;
+        int                           p101_expression_result_38;
+        int                           p101_expression_result_42;
+        int                           p101_expression_result_43;
+        int                           p101_expression_result_44;
 
         function                  = &map->functions[i];
         p101_expression_result_33 = 0;
@@ -631,6 +626,8 @@ bool p101_module_map_write_findings(const struct p101_env *env, struct p101_erro
     for(size_t i = 0; !args->library_mode && i < map->macro_count; i++)
     {
         const struct macro_record *macro;
+        int                        p101_expression_result_47;
+        bool                       p101_call_result_48;
 
         macro                     = &map->macros[i];
         p101_call_result_48       = p101_module_map_module_used_outside_module(env, map, macro->module);
@@ -664,6 +661,7 @@ bool p101_module_map_write_findings(const struct p101_env *env, struct p101_erro
     for(size_t i = 0; !args->library_mode && i < map->type_count; i++)
     {
         const struct type_record *type;
+        bool                      p101_call_result_3;
 
         type               = &map->types[i];
         p101_call_result_3 = p101_module_map_module_used_outside_module(env, map, type->module);
@@ -688,6 +686,10 @@ bool p101_module_map_write_findings(const struct p101_env *env, struct p101_erro
     for(size_t i = 0; i < map->include_count; i++)
     {
         const struct include_record *include;
+        int                          p101_expression_result_50;
+        int                          p101_expression_result_51;
+        int                          p101_expression_result_54;
+        int                          p101_expression_result_56;
 
         include                   = &map->includes[i];
         p101_expression_result_51 = 0;
@@ -876,7 +878,6 @@ void p101_module_map_test_write_finding(const struct p101_env *env, struct p101_
 
 void p101_module_map_write_functions_for_module(const struct p101_env *env, struct p101_error *err, FILE *stream, const struct project_map *map, const char *module_name)
 {
-    int  p101_call_result_7;
     bool wrote;
 
     P101_TRACE_SCOPE(env);
@@ -885,6 +886,7 @@ void p101_module_map_write_functions_for_module(const struct p101_env *env, stru
     for(size_t i = 0; i < map->function_count; i++)
     {
         const struct function_record *function;
+        int                           p101_call_result_7;
 
         function           = &map->functions[i];
         p101_call_result_7 = p101_strcmp(env, function->module, module_name);

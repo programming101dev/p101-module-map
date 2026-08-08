@@ -64,8 +64,6 @@ done:
 
 static void p101_module_map_apply_fact(const struct p101_env *env, struct p101_error *err, struct project_map *map, const struct p101_c_fact *fact)
 {
-    int                       p101_call_result_7;
-    int                       p101_call_result_6;
     const struct source_file *file;
 
     P101_TRACE_SCOPE(env);
@@ -90,7 +88,7 @@ static void p101_module_map_apply_fact(const struct p101_env *env, struct p101_e
         case P101_C_FACT_KIND_FILE:
             break;
         case P101_C_FACT_KIND_INCLUDE:
-            p101_module_map_add_include(env, err, map, file, fact->value, fact->line, fact->is_local);
+            p101_module_map_add_include(env, err, map, file, fact->value, fact->resolved, fact->line, fact->is_local);
             break;
         case P101_C_FACT_KIND_FUNCTION:
             p101_module_map_add_function(env, err, map, file, fact->value, fact->usr, fact->line, fact->is_static, fact->is_declaration);
@@ -117,19 +115,17 @@ static void p101_module_map_apply_fact(const struct p101_env *env, struct p101_e
             break;
         case P101_C_FACT_KIND_NOTE:
         {
-            p101_call_result_6 = p101_strcmp(env, fact->value, "ERROR_USE");
-            if(p101_call_result_6 == 0)
+            enum p101_c_note_kind note;
+
+            note = p101_c_note_kind_from_name(env, fact->value);
+            if(note == P101_C_NOTE_ERROR_USE)
             {
                 p101_module_map_note_error_use(env, err, map, file);
             }
-            else
+            else if(note == P101_C_NOTE_ERROR_CHECK)
             {
-                p101_call_result_7 = p101_strcmp(env, fact->value, "ERROR_CHECK");
-                if(p101_call_result_7 == 0)
-                {
-                    p101_module_map_note_error_use(env, err, map, file);
-                    p101_module_map_note_error_check(env, err, map, file);
-                }
+                p101_module_map_note_error_use(env, err, map, file);
+                p101_module_map_note_error_check(env, err, map, file);
             }
         }
         break;
@@ -146,13 +142,9 @@ done:
 
 static bool p101_module_map_fact_line_is_complete(const struct p101_env *env, struct p101_error *err, FILE *stream, char *line)
 {
-    int         p101_expression_result_8;
-    const char *p101_call_result_9;
-    const char *p101_call_result_2;
-    char       *line_result;
-    bool        no_error;
-    bool        complete;
-    size_t      length;
+    int    p101_expression_result_8;
+    bool   complete;
+    size_t length;
 
     P101_TRACE_SCOPE(env);
     complete = true;
@@ -161,6 +153,8 @@ static bool p101_module_map_fact_line_is_complete(const struct p101_env *env, st
     p101_expression_result_8 = 0;
     if(length == MAX_LINE - 1U)
     {
+        const char *p101_call_result_9;
+
         p101_call_result_9 = p101_strchr(env, line, '\n');
         if(p101_call_result_9 == NULL)
         {
@@ -174,6 +168,10 @@ static bool p101_module_map_fact_line_is_complete(const struct p101_env *env, st
         complete = false;
         for(;;)
         {
+            const char *p101_call_result_2;
+            const char *line_result;
+            bool        no_error;
+
             no_error = p101_error_has_no_error(err);
             if(!no_error)
             {
@@ -214,17 +212,17 @@ bool p101_module_map_test_fact_line_is_complete(const struct p101_env *env, stru
 
 void p101_module_map_load_clang_facts(const struct p101_env *env, struct p101_error *err, struct project_map *map, const struct arguments *args)
 {
-    int    p101_expression_result_10;
-    int    p101_expression_result_11;
-    bool   p101_call_result_12;
-    bool   p101_call_result_3;
-    bool   p101_call_result_4;
-    bool   p101_call_result_5;
-    char  *line_result;
-    bool   no_error;
-    FILE  *stream;
-    char   line[MAX_LINE];
-    size_t fact_count;
+    int         p101_expression_result_10;
+    int         p101_expression_result_11;
+    bool        p101_call_result_12;
+    bool        p101_call_result_3;
+    bool        p101_call_result_4;
+    bool        p101_call_result_5;
+    const char *line_result;
+    bool        no_error;
+    FILE       *stream;
+    char        line[MAX_LINE];
+    size_t      fact_count;
 
     P101_TRACE_SCOPE(env);
     stream     = NULL;

@@ -77,7 +77,7 @@ static void local_include_to_module(const struct p101_env *env, char *destinatio
 {
     int p101_expression_result_2;
     int p101_call_result_3;
-    int p101_call_result_4;
+
     p101_call_result_3 = p101_strncmp(env, target, "./", sizeof("./") - 1U);
     if(p101_call_result_3 == 0)
     {
@@ -85,6 +85,8 @@ static void local_include_to_module(const struct p101_env *env, char *destinatio
     }
     else
     {
+        int p101_call_result_4;
+
         p101_call_result_4 = p101_strncmp(env, target, "../", sizeof("../") - 1U);
         if(p101_call_result_4 == 0)
         {
@@ -209,7 +211,7 @@ done:
     return;
 }
 
-void p101_module_map_add_include(const struct p101_env *env, struct p101_error *err, struct project_map *map, const struct source_file *file, const char *target, size_t line, bool is_local)
+void p101_module_map_add_include(const struct p101_env *env, struct p101_error *err, struct project_map *map, const struct source_file *file, const char *target, const char *resolved, size_t line, bool is_local)
 {
     struct include_record *include;
     struct module         *module;
@@ -230,6 +232,7 @@ void p101_module_map_add_include(const struct p101_env *env, struct p101_error *
     include = &map->includes[map->include_count++];
     p101_module_map_copy_string(env, include->from_module, sizeof(include->from_module), file->module);
     p101_module_map_copy_string(env, include->path, sizeof(include->path), file->path);
+    p101_module_map_copy_string(env, include->resolved, sizeof(include->resolved), resolved == NULL ? "" : resolved);
     include->line     = line;
     include->is_local = is_local;
 

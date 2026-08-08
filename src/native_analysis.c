@@ -7,6 +7,7 @@
 #include <p101_c/p101_stdio.h>
 #include <p101_c/p101_string.h>
 #include <p101_c_facts/analysis.h>
+#include <p101_c_facts/facts.h>
 #include <p101_c_facts/project.h>
 
 static bool                apply_record(const struct p101_env *env, struct p101_error *err, const struct p101_c_analysis_record *record, void *context);
@@ -86,8 +87,6 @@ done:
 
 static bool apply_record(const struct p101_env *env, struct p101_error *err, const struct p101_c_analysis_record *record, void *context)
 {
-    int                       p101_call_result_7;
-    int                       p101_call_result_6;
     struct project_map       *map;
     const struct source_file *file;
     bool                      keep_going;
@@ -119,7 +118,7 @@ static bool apply_record(const struct p101_env *env, struct p101_error *err, con
         case P101_C_ANALYSIS_DIAGNOSTIC:
             break;
         case P101_C_ANALYSIS_INCLUDE:
-            p101_module_map_add_include(env, err, map, file, record->name, record->line, record->is_local_include);
+            p101_module_map_add_include(env, err, map, file, record->name, record->resolved_include, record->line, record->is_local_include);
             break;
         case P101_C_ANALYSIS_FUNCTION:
         {
@@ -143,23 +142,29 @@ static bool apply_record(const struct p101_env *env, struct p101_error *err, con
         case P101_C_ANALYSIS_ENUMERATOR:
             break;
         case P101_C_ANALYSIS_MACRO:
-            p101_module_map_add_macro(env, err, map, file, record->name, record->line);
+            /*
+             * The analysis also reports source-level macro expansions so
+             * policy tools can associate them with their enclosing function.
+             * A module's declared macro surface contains definitions only.
+             */
+            if(record->is_definition)
+            {
+                p101_module_map_add_macro(env, err, map, file, record->name, record->line);
+            }
             break;
         case P101_C_ANALYSIS_NOTE:
         {
-            p101_call_result_6 = p101_strcmp(env, record->name, "ERROR_USE");
-            if(p101_call_result_6 == 0)
+            enum p101_c_note_kind note;
+
+            note = p101_c_note_kind_from_name(env, record->name);
+            if(note == P101_C_NOTE_ERROR_USE)
             {
                 p101_module_map_note_error_use(env, err, map, file);
             }
-            else
+            else if(note == P101_C_NOTE_ERROR_CHECK)
             {
-                p101_call_result_7 = p101_strcmp(env, record->name, "ERROR_CHECK");
-                if(p101_call_result_7 == 0)
-                {
-                    p101_module_map_note_error_use(env, err, map, file);
-                    p101_module_map_note_error_check(env, err, map, file);
-                }
+                p101_module_map_note_error_use(env, err, map, file);
+                p101_module_map_note_error_check(env, err, map, file);
             }
         }
         break;
